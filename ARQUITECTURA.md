@@ -15,7 +15,7 @@ Versión mejorada de When2Meet, mobile-first. Estilo visual elegido: **Cake** (v
 Reglas del enunciado que condicionan esto: URL pública que abre sin instalar ni pedir cuenta, repo visible para la profesora y la ayudante, y el link debe seguir vivo hasta fines de noviembre.
 
 ## Modelo de datos
-El SQL completo está en [db/schema.sql](db/schema.sql). Resumen:
+El SQL completo está en [supabase/migrations/20261026120000_init.sql](supabase/migrations/20261026120000_init.sql). Resumen:
 - `events`: slug, título, **zona horaria**, días candidatos, **hora de inicio y de término**, **tamaño de bloque (10, 15, 20, 30 o 60 min)**, **máximo de integrantes clave (0 a 2)**, deadline, estado (`open` | `closed`) y horario elegido al cerrar. `owner_id` es null si lo creó alguien sin login.
 - `blocked_ranges`: horarios que nadie puede marcar (por ejemplo, almuerzo de 13:00 a 14:00). Valen para un día o para todos.
 - `participants`: nombre, `is_key` (integrante clave), `user_id` opcional y un `token` en cookie para volver a editar sin login. Un trigger impide pasarse del máximo de integrantes clave.
