@@ -252,7 +252,7 @@ export function CrearReunion() {
         No necesitas cuenta para crear una reunión
       </div>
       <header className={`flex items-center justify-between py-2 ${PAD}`}>
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-1">
           <Logo className="size-6 text-primary" />
           <span className="font-heading text-lg font-extrabold tracking-tight">WeMeet</span>
         </span>
@@ -267,7 +267,7 @@ export function CrearReunion() {
         </Button>
       </header>
 
-      <main className={`flex flex-1 flex-col gap-3 pt-5 pb-2 ${PAD}`}>
+      <main className={`flex flex-1 flex-col gap-3 pt-2 pb-2 ${PAD}`}>
         <div className="flex items-center justify-between gap-3">
           <h1 className="font-heading text-[1.7rem] leading-tight font-extrabold tracking-tight">Crea una reunión</h1>
           <Button
