@@ -28,6 +28,7 @@ import { DiasEditor } from "./dias-editor";
 import { Exito } from "./exito";
 import { HoraField } from "./hora-field";
 import { InfoDialog } from "./info-dialog";
+import { Plantillas } from "./plantillas";
 
 const INICIAL: Reunion = {
   titulo: "",
@@ -252,7 +253,7 @@ export function CrearReunion() {
       </div>
       <header className={`flex items-center justify-between py-2 ${PAD}`}>
         <span className="flex items-center gap-2">
-          <Logo className="h-5 w-auto text-primary" />
+          <Logo className="size-6 text-primary" />
           <span className="font-heading text-lg font-extrabold tracking-tight">WeMeet</span>
         </span>
         <Button
@@ -266,7 +267,7 @@ export function CrearReunion() {
         </Button>
       </header>
 
-      <main className={`flex flex-1 flex-col gap-3 pb-2 ${PAD}`}>
+      <main className={`flex flex-1 flex-col gap-3 pt-5 pb-2 ${PAD}`}>
         <div className="flex items-center justify-between gap-3">
           <h1 className="font-heading text-[1.7rem] leading-tight font-extrabold tracking-tight">Crea una reunión</h1>
           <Button
@@ -299,31 +300,15 @@ export function CrearReunion() {
             />
           </div>
           {usarPlantilla && (
-            <div
-              className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pt-0.5 pb-3 [scrollbar-width:thin]"
-              role="group"
-              aria-label="Plantillas"
-            >
-              {PLANTILLAS.map((p, i) => (
-                <Button
-                  key={p.nombre}
-                  type="button"
-                  variant="outline"
-                  aria-pressed={plantilla === i}
-                  title={p.detalle}
-                  className={`h-9 shrink-0 rounded-full px-3 text-[0.8125rem] ${
-                    plantilla === i ? "border-primary bg-accent font-semibold text-accent-foreground" : ""
-                  }`}
-                  onClick={() => {
-                    setPlantilla(i);
-                    setR((prev) => aplicarPlantilla(prev, p, nuevoId));
-                    setError(null);
-                  }}
-                >
-                  {p.nombre}
-                </Button>
-              ))}
-            </div>
+            <Plantillas
+              plantillas={PLANTILLAS}
+              elegida={plantilla}
+              onElegir={(i) => {
+                setPlantilla(i);
+                setR((prev) => aplicarPlantilla(prev, PLANTILLAS[i], nuevoId));
+                setError(null);
+              }}
+            />
           )}
         </div>
 

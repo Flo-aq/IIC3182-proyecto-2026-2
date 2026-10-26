@@ -1,17 +1,13 @@
-/** Logo de WeMeet: un trazo en zigzag que dibuja una "M" (y una "W" al revés). */
+/**
+ * Logo de WeMeet: dos bloques de tiempo que se cruzan; la esquina compartida es la hora en común.
+ * El bloque de adelante toma el color del texto (currentColor), el de atrás es violeta claro.
+ */
 export function Logo({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="2 12 116 76"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={10}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className={className}
-    >
-      <path d="M 10 19 L 30 80 L 40 50 L 50 80 L 70 21 L 80 50 L 90 20 L 110 80" />
+    <svg viewBox="0 0 100 100" aria-hidden="true" className={className}>
+      <rect x="8" y="8" width="58" height="58" rx="14" fill="currentColor" />
+      <rect x="34" y="34" width="58" height="58" rx="14" fill="#9f93ff" />
+      <rect x="34" y="34" width="32" height="32" rx="8" fill="var(--lime)" />
     </svg>
   );
 }
