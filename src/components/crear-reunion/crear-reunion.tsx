@@ -254,11 +254,11 @@ export function CrearReunion() {
         <Button
           type="button"
           variant="outline"
-          className="h-11 rounded-full border-foreground px-4 font-bold"
+          className="h-9 rounded-full border-foreground px-3.5 font-bold"
           disabled
-          title="Próximamente: login con Google"
+          title="Próximamente: iniciar sesión con Google"
         >
-          Login
+          Sign in
         </Button>
       </header>
 
@@ -267,8 +267,8 @@ export function CrearReunion() {
           <h1 className="font-heading text-[1.7rem] leading-tight font-extrabold tracking-tight">Crea una reunión</h1>
           <Button
             type="button"
-            variant="outline"
-            className="size-11 shrink-0 rounded-full border-primary text-primary"
+            variant="secondary"
+            className="size-10 shrink-0 rounded-full text-primary [&_svg:not([class*='size-'])]:size-5"
             aria-label="Cómo funciona"
             aria-haspopup="dialog"
             onClick={() => setInfo(true)}
@@ -280,39 +280,42 @@ export function CrearReunion() {
           <Obligatorio /> Obligatorio
         </p>
 
-        <div className="flex items-center justify-between gap-3 border-y py-2">
-          <label htmlFor={idPlantilla} className="text-[0.95rem] font-semibold">
-            Usar plantilla
-          </label>
-          <Switch
-            id={idPlantilla}
-            checked={usarPlantilla}
-            onCheckedChange={(v) => {
-              setUsarPlantilla(v);
-              if (!v) setPlantilla(-1);
-            }}
-          />
-        </div>
-        {usarPlantilla && (
-          <div className="-mt-1 flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Plantillas">
-            {PLANTILLAS.map((p, i) => (
-              <Button
-                key={p.nombre}
-                type="button"
-                variant={plantilla === i ? "secondary" : "outline"}
-                aria-pressed={plantilla === i}
-                className="h-9 shrink-0 rounded-full px-3 text-[0.8125rem]"
-                onClick={() => {
-                  setPlantilla(i);
-                  setR((prev) => aplicarPlantilla(prev, p, nuevoId));
-                  setError(null);
-                }}
-              >
-                {p.nombre}
-              </Button>
-            ))}
+        <div className="flex flex-col gap-2 border-y py-2">
+          <div className="flex items-center justify-between gap-3">
+            <label htmlFor={idPlantilla} className="text-[0.95rem] font-semibold">
+              Usar plantilla
+            </label>
+            <Switch
+              id={idPlantilla}
+              checked={usarPlantilla}
+              onCheckedChange={(v) => {
+                setUsarPlantilla(v);
+                if (!v) setPlantilla(-1);
+              }}
+            />
           </div>
-        )}
+          {usarPlantilla && (
+            <div className="flex flex-col gap-1.5 pb-1" role="group" aria-label="Plantillas">
+              {PLANTILLAS.map((p, i) => (
+                <Button
+                  key={p.nombre}
+                  type="button"
+                  variant={plantilla === i ? "secondary" : "outline"}
+                  aria-pressed={plantilla === i}
+                  className="h-auto flex-col items-start gap-0.5 rounded-2xl px-3.5 py-2 text-left whitespace-normal"
+                  onClick={() => {
+                    setPlantilla(i);
+                    setR((prev) => aplicarPlantilla(prev, p, nuevoId));
+                    setError(null);
+                  }}
+                >
+                  <span className="text-sm font-semibold">{p.nombre}</span>
+                  <span className="text-xs font-normal text-muted-foreground">{p.detalle}</span>
+                </Button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="flex flex-col gap-2">
           <label htmlFor="nombre" className="text-sm font-bold">

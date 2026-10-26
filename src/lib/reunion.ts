@@ -31,6 +31,8 @@ export type Reunion = {
 
 export type Plantilla = {
   nombre: string;
+  /** Qué configura, para que se entienda antes de elegirla. */
+  detalle: string;
   bloqueMin: number;
   desde: string;
   hasta: string;
@@ -41,6 +43,7 @@ export type Plantilla = {
 export const PLANTILLAS: Plantilla[] = [
   {
     nombre: "Reunión de equipo",
+    detalle: "Bloques de 30 min, de 9:00 a 18:00, sin contar el almuerzo",
     bloqueMin: 30,
     desde: "09:00",
     hasta: "18:00",
@@ -48,7 +51,8 @@ export const PLANTILLAS: Plantilla[] = [
     bloqueos: [{ desde: "13:00", hasta: "14:00" }],
   },
   {
-    nombre: "Ayudantía con profe",
+    nombre: "Ayudantía con profe y ayudante",
+    detalle: "Bloques de 20 min, de 10:00 a 17:00, con 2 integrantes clave",
     bloqueMin: 20,
     desde: "10:00",
     hasta: "17:00",
@@ -56,7 +60,8 @@ export const PLANTILLAS: Plantilla[] = [
     bloqueos: [{ desde: "13:00", hasta: "14:00" }],
   },
   {
-    nombre: "Express de 15 min",
+    nombre: "Reunión express de mañana",
+    detalle: "Bloques de 15 min, de 9:00 a 13:00, sin bloqueos",
     bloqueMin: 15,
     desde: "09:00",
     hasta: "13:00",
