@@ -335,7 +335,7 @@ export function CrearReunion() {
         <Accordion
           value={abierto ? [abierto] : []}
           onValueChange={(v) => setAbierto((v[0] as string | undefined) ?? null)}
-          className="overflow-hidden rounded-2xl border bg-muted"
+          className="overflow-hidden rounded-2xl border bg-secondary/60"
         >
           {filas.map((f) => (
             <AccordionItem key={f.id} value={f.id}>
