@@ -335,11 +335,11 @@ export function CrearReunion() {
         <Accordion
           value={abierto ? [abierto] : []}
           onValueChange={(v) => setAbierto((v[0] as string | undefined) ?? null)}
-          className="overflow-hidden rounded-2xl border bg-secondary/60"
+          className="overflow-hidden rounded-2xl border bg-muted"
         >
           {filas.map((f) => (
             <AccordionItem key={f.id} value={f.id}>
-              <AccordionTrigger className="min-h-13 items-center rounded-none px-3.5 py-3 hover:no-underline">
+              <AccordionTrigger className="min-h-13 items-center rounded-none px-3.5 py-3 hover:no-underline aria-expanded:border-b-border">
                 <span className="shrink-0 text-[0.95rem] font-semibold">
                   {f.etiqueta}
                   {f.obligatorio && <Obligatorio />}
