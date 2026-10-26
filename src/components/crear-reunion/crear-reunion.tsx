@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/logo";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -185,7 +186,7 @@ export function CrearReunion() {
             >
               <Minus />
             </Button>
-            <output className="min-w-14 text-center text-2xl font-extrabold">{r.claves}</output>
+            <output className="min-w-14 text-center font-heading text-2xl font-extrabold">{r.claves}</output>
             <Button
               type="button"
               variant="outline"
@@ -246,11 +247,14 @@ export function CrearReunion() {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-background">
-      <div className="bg-primary px-4 py-2 text-center text-xs font-semibold text-primary-foreground">
+      <div className="bg-lime px-4 py-2 text-center text-xs font-semibold text-foreground">
         No necesitas cuenta para crear una reunión
       </div>
       <header className={`flex items-center justify-between py-2 ${PAD}`}>
-        <span className="text-lg font-extrabold tracking-tight">Juntémonos</span>
+        <span className="flex items-center gap-2">
+          <Logo className="h-5 w-auto text-primary" />
+          <span className="font-heading text-lg font-extrabold tracking-tight">WeMeet</span>
+        </span>
         <Button
           type="button"
           variant="outline"
@@ -264,7 +268,7 @@ export function CrearReunion() {
 
       <main className={`flex flex-1 flex-col gap-3 pb-2 ${PAD}`}>
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-[1.7rem] leading-tight font-extrabold tracking-tight">Crea una reunión</h1>
+          <h1 className="font-heading text-[1.7rem] leading-tight font-extrabold tracking-tight">Crea una reunión</h1>
           <Button
             type="button"
             variant="ghost"

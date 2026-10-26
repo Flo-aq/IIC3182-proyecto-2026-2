@@ -1,4 +1,4 @@
--- Juntémonos: modelo de datos (Postgres en Supabase)
+-- WeMeet: modelo de datos (Postgres en Supabase)
 -- Se pega tal cual en el SQL Editor de Supabase.
 
 create table events (

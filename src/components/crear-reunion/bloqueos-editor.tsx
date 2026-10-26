@@ -53,7 +53,7 @@ export function BloqueosEditor({ reunion, nuevoId, onChange }: Props) {
             <Button
               type="button"
               variant="ghost"
-              className="size-11 text-accent-foreground"
+              className="size-11 text-primary"
               aria-label="Duplicar esta regla"
               title="Duplicar"
               onClick={() => onChange(duplicarBloqueo(reunion, i, nuevoId))}
@@ -82,7 +82,7 @@ export function BloqueosEditor({ reunion, nuevoId, onChange }: Props) {
       <Button
         type="button"
         variant="ghost"
-        className="h-11 justify-start gap-1.5 px-1 font-semibold text-accent-foreground"
+        className="h-11 justify-start gap-1.5 px-1 font-semibold text-primary"
         onClick={() =>
           onChange([...bloqueos, { id: nuevoId(), dia: ordenados[0] ?? "", desde: "13:00", hasta: "14:00" }])
         }
@@ -94,7 +94,7 @@ export function BloqueosEditor({ reunion, nuevoId, onChange }: Props) {
         <Button
           type="button"
           variant="ghost"
-          className="h-11 justify-start gap-1.5 px-1 font-semibold text-accent-foreground"
+          className="h-11 justify-start gap-1.5 px-1 font-semibold text-primary"
           onClick={() => onChange(repetirUltimoBloqueo(reunion, nuevoId))}
         >
           <Copy />

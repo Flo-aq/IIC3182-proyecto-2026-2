@@ -23,12 +23,12 @@ export function InfoDialog({ open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm rounded-3xl">
         <DialogHeader>
-          <DialogTitle className="text-xl font-extrabold tracking-tight">Cómo funciona</DialogTitle>
+          <DialogTitle className="font-heading text-xl font-extrabold tracking-tight">Cómo funciona</DialogTitle>
         </DialogHeader>
         <ol className="flex flex-col gap-4">
           {PASOS.map((p, i) => (
             <li key={p.titulo} className="grid grid-cols-[2.125rem_1fr] gap-3">
-              <span className="grid size-[2.125rem] place-items-center rounded-full bg-accent font-extrabold text-accent-foreground">
+              <span className="grid size-[2.125rem] place-items-center rounded-full bg-accent font-heading font-extrabold text-accent-foreground">
                 {i + 1}
               </span>
               <div>

@@ -1,4 +1,4 @@
-# Juntémonos: arquitectura (monolito)
+# WeMeet: arquitectura (monolito)
 
 Versión mejorada de When2Meet, mobile-first. Estilo visual elegido: **Cake** (ver artifact de estilos).
 

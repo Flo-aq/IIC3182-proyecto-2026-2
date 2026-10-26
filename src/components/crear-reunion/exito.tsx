@@ -8,9 +8,22 @@ import { type Reunion, etiquetaDia, resumenBloques, resumenDias, zonaCorta } fro
 
 type Props = { codigo: string; reunion: Reunion; onOtra: () => void };
 
+/** Agrupa las reglas con la misma hora: "13:00–14:00 en 5 días" en vez de repetirla por cada día. */
+function resumenBloqueos(r: Reunion): string {
+  if (!r.bloqueos.length) return "Ninguno";
+  const grupos = new Map<string, string[]>();
+  for (const b of r.bloqueos) {
+    const hora = `${b.desde}–${b.hasta}`;
+    grupos.set(hora, [...(grupos.get(hora) ?? []), b.dia]);
+  }
+  return [...grupos]
+    .map(([hora, dias]) => (dias.length > 2 ? `${hora} en ${dias.length} días` : `${hora} (${dias.map((d) => etiquetaDia(d)).join(", ")})`))
+    .join("; ");
+}
+
 export function Exito({ codigo, reunion: r, onOtra }: Props) {
   const [copiado, setCopiado] = useState(false);
-  const enlace = `juntemonos.app/e/${codigo}`;
+  const enlace = `wemeet.app/e/${codigo}`;
 
   const copiar = async () => {
     try {
@@ -26,10 +39,7 @@ export function Exito({ codigo, reunion: r, onOtra }: Props) {
     ["Días", resumenDias(r.dias)],
     ["Horario", `${r.desde} a ${r.hasta}`],
     ["Bloques", resumenBloques(r)],
-    [
-      "Bloqueados",
-      r.bloqueos.length ? r.bloqueos.map((b) => `${etiquetaDia(b.dia)} ${b.desde}–${b.hasta}`).join(", ") : "Ninguno",
-    ],
+    ["Bloqueados", resumenBloqueos(r)],
     ["Integrantes clave", String(r.claves)],
     ["Zona horaria", zonaCorta(r.zona)],
     ["Fecha límite", r.limite || "Sin fecha"],
@@ -37,10 +47,10 @@ export function Exito({ codigo, reunion: r, onOtra }: Props) {
 
   return (
     <div className="flex flex-col gap-4 px-4 py-6">
-      <div className="grid size-14 place-items-center rounded-full bg-primary">
+      <div className="grid size-14 place-items-center rounded-full bg-lime">
         <Check className="size-7" />
       </div>
-      <h1 className="text-3xl font-extrabold tracking-tight">Reunión creada</h1>
+      <h1 className="font-heading text-3xl font-extrabold tracking-tight">Reunión creada</h1>
       <p className="text-muted-foreground">Comparte este link. Quien lo abra puede responder sin cuenta.</p>
       <div className="flex items-center gap-2 rounded-full border bg-muted py-1.5 pr-1.5 pl-5">
         <code className="min-w-0 flex-1 truncate font-semibold">{enlace}</code>
