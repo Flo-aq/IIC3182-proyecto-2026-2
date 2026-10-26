@@ -37,8 +37,8 @@ export function DiasEditor({ dias, manana, onChange }: Props) {
         </p>
         <Button
           type="button"
-          variant="outline"
-          className="h-11 shrink-0 gap-1.5 rounded-full px-4"
+          variant="ghost"
+          className="h-11 shrink-0 gap-1.5 rounded-full px-3 font-semibold text-primary"
           disabled={!dias.length}
           onClick={() => onChange([])}
         >
