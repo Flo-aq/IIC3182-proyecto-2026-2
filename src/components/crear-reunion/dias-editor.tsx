@@ -5,7 +5,7 @@ import { es } from "react-day-picker/locale";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { aIso, desdeIso, resumenDias } from "@/lib/reunion";
+import { aIso, desdeIso } from "@/lib/reunion";
 
 type Props = {
   dias: string[];
@@ -32,7 +32,9 @@ export function DiasEditor({ dias, manana, onChange }: Props) {
         classNames={{ root: "w-full", month: "w-full gap-2" }}
       />
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">{resumenDias(dias)}</p>
+        <p className="text-sm leading-none font-medium">
+          {dias.length === 0 ? "Ningún día" : dias.length === 1 ? "1 día" : `${dias.length} días`}
+        </p>
         <Button
           type="button"
           variant="outline"
