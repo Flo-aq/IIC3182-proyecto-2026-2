@@ -185,7 +185,7 @@ export function CrearReunion() {
             >
               <Minus />
             </Button>
-            <output className="min-w-14 text-center font-heading text-2xl font-extrabold">{r.claves}</output>
+            <output className="min-w-14 text-center text-2xl font-extrabold">{r.claves}</output>
             <Button
               type="button"
               variant="outline"
@@ -246,11 +246,11 @@ export function CrearReunion() {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-background">
-      <div className="bg-lime px-4 py-2 text-center text-xs font-semibold text-foreground">
+      <div className="bg-primary px-4 py-2 text-center text-xs font-semibold text-primary-foreground">
         No necesitas cuenta para crear una reunión
       </div>
       <header className={`flex items-center justify-between py-2 ${PAD}`}>
-        <span className="font-heading text-lg font-extrabold tracking-tight">Juntémonos</span>
+        <span className="text-lg font-extrabold tracking-tight">Juntémonos</span>
         <Button
           type="button"
           variant="outline"
@@ -264,11 +264,11 @@ export function CrearReunion() {
 
       <main className={`flex flex-1 flex-col gap-3 pb-2 ${PAD}`}>
         <div className="flex items-center justify-between gap-3">
-          <h1 className="font-heading text-[1.7rem] leading-tight font-extrabold tracking-tight">Crea una reunión</h1>
+          <h1 className="text-[1.7rem] leading-tight font-extrabold tracking-tight">Crea una reunión</h1>
           <Button
             type="button"
-            variant="secondary"
-            className="size-10 shrink-0 rounded-full text-primary [&_svg:not([class*='size-'])]:size-5"
+            variant="ghost"
+            className="size-10 shrink-0 rounded-full bg-accent text-accent-foreground hover:bg-accent/70 [&_svg:not([class*='size-'])]:size-5"
             aria-label="Cómo funciona"
             aria-haspopup="dialog"
             onClick={() => setInfo(true)}
@@ -295,22 +295,28 @@ export function CrearReunion() {
             />
           </div>
           {usarPlantilla && (
-            <div className="flex flex-col gap-1.5 pb-1" role="group" aria-label="Plantillas">
+            <div
+              className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pt-0.5 pb-3 [scrollbar-width:thin]"
+              role="group"
+              aria-label="Plantillas"
+            >
               {PLANTILLAS.map((p, i) => (
                 <Button
                   key={p.nombre}
                   type="button"
-                  variant={plantilla === i ? "secondary" : "outline"}
+                  variant="outline"
                   aria-pressed={plantilla === i}
-                  className="h-auto flex-col items-start gap-0.5 rounded-2xl px-3.5 py-2 text-left whitespace-normal"
+                  title={p.detalle}
+                  className={`h-9 shrink-0 rounded-full px-3 text-[0.8125rem] ${
+                    plantilla === i ? "border-primary bg-accent font-semibold text-accent-foreground" : ""
+                  }`}
                   onClick={() => {
                     setPlantilla(i);
                     setR((prev) => aplicarPlantilla(prev, p, nuevoId));
                     setError(null);
                   }}
                 >
-                  <span className="text-sm font-semibold">{p.nombre}</span>
-                  <span className="text-xs font-normal text-muted-foreground">{p.detalle}</span>
+                  {p.nombre}
                 </Button>
               ))}
             </div>

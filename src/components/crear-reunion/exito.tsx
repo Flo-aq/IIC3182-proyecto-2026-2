@@ -37,10 +37,10 @@ export function Exito({ codigo, reunion: r, onOtra }: Props) {
 
   return (
     <div className="flex flex-col gap-4 px-4 py-6">
-      <div className="grid size-14 place-items-center rounded-full bg-lime">
+      <div className="grid size-14 place-items-center rounded-full bg-primary">
         <Check className="size-7" />
       </div>
-      <h1 className="font-heading text-3xl font-extrabold tracking-tight">Reunión creada</h1>
+      <h1 className="text-3xl font-extrabold tracking-tight">Reunión creada</h1>
       <p className="text-muted-foreground">Comparte este link. Quien lo abra puede responder sin cuenta.</p>
       <div className="flex items-center gap-2 rounded-full border bg-muted py-1.5 pr-1.5 pl-5">
         <code className="min-w-0 flex-1 truncate font-semibold">{enlace}</code>
