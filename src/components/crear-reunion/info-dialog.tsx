@@ -21,7 +21,7 @@ type Props = { open: boolean; onOpenChange: (open: boolean) => void };
 export function InfoDialog({ open, onOpenChange }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm rounded-3xl">
+      <DialogContent className="max-w-[calc(100%-3rem)] rounded-3xl p-5 sm:max-w-md md:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-heading text-xl font-extrabold tracking-tight">Cómo funciona</DialogTitle>
         </DialogHeader>

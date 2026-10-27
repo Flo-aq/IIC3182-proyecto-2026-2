@@ -189,6 +189,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Bajo 320 px la pantalla deja de comprimirse y aparece scroll horizontal. */
+    min-width: 320px;
     letter-spacing: var(--tracking-normal);
   }
 }

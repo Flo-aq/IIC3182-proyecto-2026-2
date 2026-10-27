@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const inter = Inter({
@@ -32,7 +33,14 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className={`${inter.variable} ${jakarta.variable} ${jetbrains.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Toaster
+          position="top-center"
+          offset={{ top: "max(1rem, env(safe-area-inset-top))", left: "1rem", right: "1rem" }}
+          mobileOffset={{ top: "max(0.75rem, env(safe-area-inset-top))", left: "1rem", right: "1rem" }}
+        />
+      </body>
     </html>
   );
 }

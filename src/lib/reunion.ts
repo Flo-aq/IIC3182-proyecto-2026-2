@@ -3,6 +3,9 @@
 
 export const OPCIONES_BLOQUE = [10, 15, 20, 30, 60] as const;
 
+/** Horas con las que parte una reunión y un bloqueo nuevo; "Restablecer" en el selector de hora vuelve a ellas. */
+export const POR_DEFECTO = { desde: "09:00", hasta: "18:00", bloqueoDesde: "13:00", bloqueoHasta: "14:00" } as const;
+
 export const ZONAS = [
   "America/Santiago",
   "America/Argentina/Buenos_Aires",
@@ -14,7 +17,8 @@ export const ZONAS = [
   "UTC",
 ];
 
-export type Bloqueo = { id: string; dia: string; desde: string; hasta: string };
+/** Una regla de bloqueo: un rango de horas que vale para uno o más de los días elegidos. */
+export type Bloqueo = { id: string; dias: string[]; desde: string; hasta: string };
 
 export type Reunion = {
   titulo: string;
@@ -25,7 +29,6 @@ export type Reunion = {
   hasta: string;
   bloqueMin: number;
   claves: number;
-  limite: string;
   bloqueos: Bloqueo[];
 };
 
@@ -78,7 +81,22 @@ export const aMinutos = (hora: string): number => {
   return h * 60 + m;
 };
 
-export const aIso = (d: Date): string =>
+/** Fin del día: no cabe en un selector de hora (llega hasta 23:59), por eso "Todo el día" lo pone aparte. */
+export const FIN_DEL_DIA = "24:00";
+
+export const esTodoElDia = (r: Pick<Reunion, "desde" | "hasta">): boolean =>
+  r.desde === "00:00" && r.hasta === FIN_DEL_DIA;
+
+export const textoHorario = (r: Pick<Reunion, "desde" | "hasta">): string =>
+  esTodoElDia(r) ? "Todo el día" : `${r.desde} a ${r.hasta}`;
+
+/** Suma (o resta, con un valor negativo) minutos a una hora HH:MM, sin salirse de 00:00 a 23:59. */
+export function sumarMinutos(hora: string, minutos: number): string {
+  const total = Math.max(0, Math.min(23 * 60 + 59, aMinutos(hora) + minutos));
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+export const aIso =(d: Date): string =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 export const desdeIso = (iso: string): Date => {
@@ -116,7 +134,7 @@ export function bloquesDelDia(r: ConfigBloques, dia: string): boolean[] {
   for (let m = aMinutos(r.desde); m + r.bloqueMin <= aMinutos(r.hasta); m += r.bloqueMin) {
     const fin = m + r.bloqueMin;
     const bloqueado = r.bloqueos.some(
-      (b) => b.dia === dia && aMinutos(b.desde) < fin && aMinutos(b.hasta) > m,
+      (b) => b.dias.includes(dia) && aMinutos(b.desde) < fin && aMinutos(b.hasta) > m,
     );
     salida.push(!bloqueado);
   }
@@ -149,7 +167,11 @@ export function resumenDias(dias: string[]): string {
   return `${a.length} días · ${etiquetaDia(a[0], conMes)} a ${etiquetaDia(a[a.length - 1])}`;
 }
 
-export const zonaCorta = (zona: string): string => zona.split("/").pop()!.replace(/_/g, " ");
+/** "Ningún día", "1 día" o "5 días": lo que se muestra como contador en la pantalla. */
+export const textoCantidadDias = (n: number): string =>
+  n === 0 ? "Ningún día" : n === 1 ? "1 día" : `${n} días`;
+
+export const zonaCorta =(zona: string): string => zona.split("/").pop()!.replace(/_/g, " ");
 
 export function aplicarPlantilla(r: Reunion, p: Plantilla, nuevoId: () => string): Reunion {
   const dias = [...r.dias].sort();
@@ -159,39 +181,56 @@ export function aplicarPlantilla(r: Reunion, p: Plantilla, nuevoId: () => string
     desde: p.desde,
     hasta: p.hasta,
     claves: p.claves,
-    // Cada regla vale para un solo día, así que se repite en cada día elegido.
-    bloqueos: p.bloqueos.flatMap((b) =>
-      (dias.length ? dias : [""]).map((dia) => ({ id: nuevoId(), dia, desde: b.desde, hasta: b.hasta })),
-    ),
+    // Cada regla de la plantilla vale para todos los días elegidos.
+    bloqueos: p.bloqueos.map((b) => ({ id: nuevoId(), dias, desde: b.desde, hasta: b.hasta })),
   };
 }
 
-/** Copia la regla `i` al siguiente día elegido (o al mismo día si hay uno solo). */
+/** Pone una copia de la regla `i` justo debajo, con los mismos días y horas, para ajustarla. */
 export function duplicarBloqueo(r: Reunion, i: number, nuevoId: () => string): Bloqueo[] {
-  const b = r.bloqueos[i];
-  const dias = [...r.dias].sort();
-  const k = dias.indexOf(b.dia);
-  const dia = dias.length ? dias[(k + 1) % dias.length] : b.dia;
-  const copia = { ...b, id: nuevoId(), dia };
+  const copia = { ...r.bloqueos[i], id: nuevoId(), dias: [...r.bloqueos[i].dias] };
   return [...r.bloqueos.slice(0, i + 1), copia, ...r.bloqueos.slice(i + 1)];
 }
 
-/** Repite la última regla en todos los días elegidos que aún no la tengan. */
-export function repetirUltimoBloqueo(r: Reunion, nuevoId: () => string): Bloqueo[] {
-  const ultimo = r.bloqueos[r.bloqueos.length - 1];
-  if (!ultimo) return r.bloqueos;
-  const nuevos = r.dias
-    .filter((d) => !r.bloqueos.some((b) => b.dia === d && b.desde === ultimo.desde && b.hasta === ultimo.hasta))
-    .map((dia) => ({ id: nuevoId(), dia, desde: ultimo.desde, hasta: ultimo.hasta }));
-  return [...r.bloqueos, ...nuevos];
+/** Quita de las reglas los días que ya no están elegidos en "Días". */
+export function podarBloqueos(bloqueos: Bloqueo[], dias: string[]): Bloqueo[] {
+  return bloqueos.map((b) => ({ ...b, dias: b.dias.filter((d) => dias.includes(d)) }));
 }
 
-export function validar(r: Reunion): string | null {
-  if (!r.titulo.trim()) return "Escribe el nombre de la reunión.";
-  if (!r.dias.length) return "Elige al menos un día.";
-  if (aMinutos(r.hasta) <= aMinutos(r.desde)) return "La hora de término debe ser después de la de inicio.";
-  const malo = r.bloqueos.findIndex((b) => aMinutos(b.hasta) <= aMinutos(b.desde));
-  if (malo >= 0) return `En el horario bloqueado ${malo + 1}, "hasta" debe ser después de "desde".`;
-  if (!rangoBloques(r).max) return "Con ese horario y esos bloqueos no queda ningún bloque disponible.";
-  return null;
+/** "Todos los días" si la regla cubre todos los elegidos; si no, la lista corta de días. */
+export function textoDiasRegla(b: Bloqueo, dias: string[]): string {
+  if (!b.dias.length) return "Elige uno o más días";
+  if (dias.length > 1 && b.dias.length === dias.length) return "Todos los días";
+  return resumenDias(b.dias);
+}
+
+export type Problema = {
+  campo: "nombre" | "dias" | "horario" | "bloque" | "bloqueos";
+  /** Nombre del campo tal como se lee en la pantalla. */
+  etiqueta: string;
+  mensaje: string;
+  /** Id de la regla de bloqueo afectada, si el problema es de una regla. */
+  regla?: string;
+};
+
+/** Todo lo que impide crear la reunión, en el orden en que aparece en la pantalla. */
+export function problemas(r: Reunion): Problema[] {
+  const salida: Problema[] = [];
+  if (!r.titulo.trim()) salida.push({ campo: "nombre", etiqueta: "Nombre de la reunión", mensaje: "escribe un nombre." });
+  if (!r.dias.length) salida.push({ campo: "dias", etiqueta: "Días", mensaje: "elige al menos un día." });
+  const horarioBien = aMinutos(r.hasta) > aMinutos(r.desde);
+  if (!horarioBien) {
+    salida.push({ campo: "horario", etiqueta: "Horario", mensaje: "la hora de término debe ser después de la de inicio." });
+  }
+  r.bloqueos.forEach((b, i) => {
+    const etiqueta = `Bloquear horarios, regla ${i + 1}`;
+    if (!b.dias.length) salida.push({ campo: "bloqueos", etiqueta, mensaje: "elige al menos un día.", regla: b.id });
+    else if (aMinutos(b.hasta) <= aMinutos(b.desde)) {
+      salida.push({ campo: "bloqueos", etiqueta, mensaje: '"hasta" debe ser después de "desde".', regla: b.id });
+    }
+  });
+  if (r.dias.length && horarioBien && !rangoBloques(r).max) {
+    salida.push({ campo: "bloque", etiqueta: "Cada bloque dura", mensaje: "con ese horario y esos bloqueos no queda ningún bloque disponible." });
+  }
+  return salida;
 }

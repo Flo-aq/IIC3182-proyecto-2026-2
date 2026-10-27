@@ -1,81 +1,168 @@
 "use client";
 
-import { Copy, Plus, X } from "lucide-react";
+import { CalendarDays, Copy, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { es } from "react-day-picker/locale";
 
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { type Bloqueo, type Reunion, duplicarBloqueo, etiquetaDia, repetirUltimoBloqueo } from "@/lib/reunion";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  type Bloqueo,
+  POR_DEFECTO,
+  type Reunion,
+  aIso,
+  desdeIso,
+  duplicarBloqueo,
+  sumarMinutos,
+  textoDiasRegla,
+} from "@/lib/reunion";
 import { HoraField } from "./hora-field";
 
 type Props = {
   reunion: Reunion;
   nuevoId: () => string;
+  /** Ids de las reglas con problemas, para marcarlas. */
+  reglasInvalidas?: Set<string>;
   onChange: (bloqueos: Bloqueo[]) => void;
 };
 
-export function BloqueosEditor({ reunion, nuevoId, onChange }: Props) {
-  const { bloqueos, dias } = reunion;
+/** Elige los días de una regla en el calendario normal, donde solo se pueden tocar los días marcados en "Días". */
+function DiasDeLaRegla({
+  regla,
+  dias,
+  etiqueta,
+  invalida,
+  onChange,
+}: {
+  regla: Bloqueo;
+  dias: string[];
+  etiqueta: string;
+  invalida: boolean;
+  onChange: (dias: string[]) => void;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const botonClase = "h-11 w-full justify-between rounded-xl px-3 text-base font-normal";
+
+  if (!dias.length) {
+    return (
+      <Button type="button" variant="outline" disabled aria-label={etiqueta} className={botonClase}>
+        <span>Elige días primero</span>
+        <CalendarDays className="text-muted-foreground" />
+      </Button>
+    );
+  }
+
   const ordenados = [...dias].sort();
+  const permitidos = new Set(ordenados);
+  const primeroElegido = [...regla.dias].sort()[0];
+
+  return (
+    <Popover open={abierto} onOpenChange={setAbierto}>
+      <PopoverTrigger
+        render={<Button type="button" variant="outline" aria-label={etiqueta} aria-invalid={invalida || undefined} className={botonClase} />}
+      >
+        <span className={`min-w-0 truncate ${regla.dias.length ? "" : "text-muted-foreground"}`}>
+          {textoDiasRegla(regla, dias)}
+        </span>
+        <CalendarDays className="text-muted-foreground" />
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[20rem] max-w-[calc(100vw-2rem)] p-3">
+        <Calendar
+          mode="multiple"
+          locale={es}
+          weekStartsOn={1}
+          selected={regla.dias.map(desdeIso)}
+          onSelect={(sel) => onChange((sel ?? []).map(aIso).sort())}
+          disabled={(d) => !permitidos.has(aIso(d))}
+          defaultMonth={desdeIso(primeroElegido ?? ordenados[0])}
+          startMonth={desdeIso(ordenados[0])}
+          endMonth={desdeIso(ordenados[ordenados.length - 1])}
+          className="w-full p-0 [--cell-size:--spacing(10)]"
+          classNames={{ root: "w-full", month: "w-full gap-2", today: "" }}
+        />
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-9 rounded-full px-3 text-[0.8125rem] font-semibold text-muted-foreground"
+            onClick={() => onChange(ordenados)}
+          >
+            Todos los días
+          </Button>
+          <Button type="button" variant="secondary" className="h-9 rounded-full px-4 text-[0.8125rem]" onClick={() => setAbierto(false)}>
+            Listo
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export function BloqueosEditor({ reunion, nuevoId, reglasInvalidas, onChange }: Props) {
+  const { bloqueos, dias } = reunion;
 
   const cambiar = (id: string, cambio: Partial<Bloqueo>) =>
     onChange(bloqueos.map((b) => (b.id === id ? { ...b, ...cambio } : b)));
 
-  const itemsDia = (actual: string) => {
-    const base = ordenados.map((d) => ({ value: d, label: etiquetaDia(d) }));
-    if (actual && !ordenados.includes(actual)) base.unshift({ value: actual, label: etiquetaDia(actual) });
-    return base.length ? base : [{ value: "ninguno", label: "Elige días primero" }];
-  };
-
   return (
     <div className="flex flex-col gap-2">
-      {bloqueos.length === 0 && (
-        <p className="text-sm text-muted-foreground">Ningún horario bloqueado. Por ejemplo, el almuerzo.</p>
-      )}
+      {bloqueos.length === 0 && <p className="text-sm text-muted-foreground">Ningún horario bloqueado.</p>}
       {bloqueos.map((b, i) => (
-        <div key={b.id} className="flex flex-col gap-2 rounded-2xl border bg-background p-2">
-          <div className="flex items-center gap-1">
-            <Select
-              items={itemsDia(b.dia)}
-              value={b.dia || "ninguno"}
-              onValueChange={(v) => v && cambiar(b.id, { dia: v === "ninguno" ? "" : v })}
-            >
-              <SelectTrigger className="h-11 flex-1 rounded-xl px-3 text-base" aria-label="Día del bloqueo">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {itemsDia(b.dia).map((it) => (
-                  <SelectItem key={it.value} value={it.value}>
-                    {it.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              type="button"
-              variant="ghost"
-              className="size-11 text-primary"
-              aria-label="Duplicar esta regla"
-              title="Duplicar"
-              onClick={() => onChange(duplicarBloqueo(reunion, i, nuevoId))}
-            >
-              <Copy />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              className="size-11 text-muted-foreground"
-              aria-label="Quitar esta regla"
-              onClick={() => onChange(bloqueos.filter((x) => x.id !== b.id))}
-            >
-              <X />
-            </Button>
+        <div
+          key={b.id}
+          className={`flex flex-col gap-2 rounded-2xl border bg-background p-2.5 ${reglasInvalidas?.has(b.id) ? "border-destructive" : ""}`}
+        >
+          <div className="flex min-h-8 items-center justify-between gap-2">
+            <span className="pl-1.5 text-sm font-semibold">Regla {i + 1}</span>
+            <div className="flex items-center">
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-8 gap-1.5 rounded-full px-2.5 text-[0.8125rem] font-normal text-muted-foreground"
+                aria-label={`Duplicar la regla ${i + 1}`}
+                onClick={() => onChange(duplicarBloqueo(reunion, i, nuevoId))}
+              >
+                <Copy />
+                Duplicar
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-8 gap-1.5 rounded-full px-2.5 text-[0.8125rem] font-normal text-destructive hover:bg-destructive/10 hover:text-destructive"
+                aria-label={`Quitar la regla ${i + 1}`}
+                onClick={() => onChange(bloqueos.filter((x) => x.id !== b.id))}
+              >
+                <Trash2 />
+                Quitar
+              </Button>
+            </div>
           </div>
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-            <HoraField value={b.desde} onChange={(v) => cambiar(b.id, { desde: v })} label="Bloquear desde" />
+          <DiasDeLaRegla
+            regla={b}
+            dias={dias}
+            etiqueta={`Días de la regla ${i + 1}`}
+            invalida={!!reglasInvalidas?.has(b.id)}
+            onChange={(d) => cambiar(b.id, { dias: d })}
+          />
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5">
+            <HoraField
+              value={b.desde}
+              onChange={(v) => cambiar(b.id, { desde: v })}
+              porDefecto={POR_DEFECTO.bloqueoDesde}
+              max={sumarMinutos(b.hasta, -5)}
+              label={`Regla ${i + 1}: bloquear desde`}
+            />
             <span aria-hidden="true" className="text-muted-foreground">
               –
             </span>
-            <HoraField value={b.hasta} onChange={(v) => cambiar(b.id, { hasta: v })} label="Bloquear hasta" />
+            <HoraField
+              value={b.hasta}
+              onChange={(v) => cambiar(b.id, { hasta: v })}
+              porDefecto={POR_DEFECTO.bloqueoHasta}
+              min={sumarMinutos(b.desde, 5)}
+              label={`Regla ${i + 1}: bloquear hasta`}
+            />
           </div>
         </div>
       ))}
@@ -84,23 +171,15 @@ export function BloqueosEditor({ reunion, nuevoId, onChange }: Props) {
         variant="ghost"
         className="h-11 justify-start gap-1.5 px-1 font-semibold text-primary"
         onClick={() =>
-          onChange([...bloqueos, { id: nuevoId(), dia: ordenados[0] ?? "", desde: "13:00", hasta: "14:00" }])
+          onChange([
+            ...bloqueos,
+            { id: nuevoId(), dias: [...dias].sort(), desde: POR_DEFECTO.bloqueoDesde, hasta: POR_DEFECTO.bloqueoHasta },
+          ])
         }
       >
         <Plus />
         Bloquear un horario
       </Button>
-      {bloqueos.length > 0 && dias.length > 1 && (
-        <Button
-          type="button"
-          variant="ghost"
-          className="h-11 justify-start gap-1.5 px-1 font-semibold text-primary"
-          onClick={() => onChange(repetirUltimoBloqueo(reunion, nuevoId))}
-        >
-          <Copy />
-          Repetir la última regla en todos los días
-        </Button>
-      )}
     </div>
   );
 }

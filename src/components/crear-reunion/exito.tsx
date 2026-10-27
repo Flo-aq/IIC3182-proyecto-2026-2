@@ -4,22 +4,10 @@ import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { type Reunion, etiquetaDia, resumenBloques, resumenDias, zonaCorta } from "@/lib/reunion";
+import { type Reunion, resumenBloques, resumenDias, textoHorario, zonaCorta } from "@/lib/reunion";
+import { resumenBloqueos } from "./resumen";
 
 type Props = { codigo: string; reunion: Reunion; onOtra: () => void };
-
-/** Agrupa las reglas con la misma hora: "13:00–14:00 en 5 días" en vez de repetirla por cada día. */
-function resumenBloqueos(r: Reunion): string {
-  if (!r.bloqueos.length) return "Ninguno";
-  const grupos = new Map<string, string[]>();
-  for (const b of r.bloqueos) {
-    const hora = `${b.desde}–${b.hasta}`;
-    grupos.set(hora, [...(grupos.get(hora) ?? []), b.dia]);
-  }
-  return [...grupos]
-    .map(([hora, dias]) => (dias.length > 2 ? `${hora} en ${dias.length} días` : `${hora} (${dias.map((d) => etiquetaDia(d)).join(", ")})`))
-    .join("; ");
-}
 
 export function Exito({ codigo, reunion: r, onOtra }: Props) {
   const [copiado, setCopiado] = useState(false);
@@ -37,12 +25,11 @@ export function Exito({ codigo, reunion: r, onOtra }: Props) {
   const filas: [string, string][] = [
     ["Reunión", r.titulo.trim()],
     ["Días", resumenDias(r.dias)],
-    ["Horario", `${r.desde} a ${r.hasta}`],
+    ["Horario", textoHorario(r)],
     ["Bloques", resumenBloques(r)],
     ["Bloqueados", resumenBloqueos(r)],
     ["Integrantes clave", String(r.claves)],
     ["Zona horaria", zonaCorta(r.zona)],
-    ["Fecha límite", r.limite || "Sin fecha"],
   ];
 
   return (
