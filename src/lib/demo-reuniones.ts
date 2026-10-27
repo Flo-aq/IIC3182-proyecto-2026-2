@@ -91,6 +91,27 @@ const curso: Reunion = {
   bloqueos: [{ id: "b1", dias: ["2026-10-28", "2026-10-29", "2026-10-30", "2026-11-02", "2026-11-03"], desde: "13:00", hasta: "14:00" }],
 };
 
+const SEMANA_1 = ["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-07", "2026-11-08"];
+const SEMANA_2 = ["2026-11-09", "2026-11-10", "2026-11-11", "2026-11-12", "2026-11-13", "2026-11-14", "2026-11-15"];
+const HABILES = [...SEMANA_1.slice(0, 5), ...SEMANA_2.slice(0, 5)];
+
+// Dos semanas completas con las 24 horas del día y varios bloqueos: de noche, a la hora de almuerzo y en clases.
+const guardia: Reunion = {
+  titulo: "Turnos del proyecto (2 semanas, 24 h)",
+  zona: "America/Santiago",
+  dias: [...SEMANA_1, ...SEMANA_2],
+  desde: "00:00",
+  hasta: "24:00",
+  bloqueMin: 30,
+  claves: 2,
+  bloqueos: [
+    { id: "b1", dias: [...SEMANA_1, ...SEMANA_2], desde: "00:00", hasta: "07:00" },
+    { id: "b2", dias: HABILES, desde: "13:00", hasta: "14:00" },
+    { id: "b3", dias: ["2026-11-02", "2026-11-04", "2026-11-09", "2026-11-11"], desde: "10:00", hasta: "11:30" },
+    { id: "b4", dias: ["2026-11-03", "2026-11-05", "2026-11-10", "2026-11-12"], desde: "15:30", hasta: "17:00" },
+  ],
+};
+
 const NOMBRES_CURSO = ["Profe Carla", "Ayud. Tomás", "Ana", "Benja", "Cata", "Dani", "Eli", "Fabi", "Gaspar", "Hana", "Ignacio", "Javiera", "Kevin", "Laura", "Mateo", "Nicole"];
 
 /** Una respuesta distinta por persona: cada una puede en una franja que cambia con su posición. */
@@ -149,6 +170,17 @@ export const REUNIONES_DE_EJEMPLO: ReunionConRespuestas[] = [
     slug: "curso-completo",
     reunion: curso,
     personas: NOMBRES_CURSO.map((_, i) => respuestaDelCurso(i)),
+  },
+  {
+    slug: "dos-semanas",
+    reunion: guardia,
+    personas: [
+      persona(guardia, "Marta", true, [["2026-11-02", "14:00", "20:00"], ["2026-11-03", "08:00", "12:00"], ["2026-11-05", "18:00", "23:00"], ["2026-11-10", "09:00", "15:00"], ["2026-11-14", "10:00", "18:00"]]),
+      persona(guardia, "Luis", true, [["2026-11-02", "16:00", "22:00"], ["2026-11-04", "12:00", "20:00"], ["2026-11-10", "10:00", "15:00"], ["2026-11-14", "08:00", "16:00"]]),
+      persona(guardia, "Camila", false, [["2026-11-02", "12:00", "23:30"], ["2026-11-06", "07:00", "13:00"], ["2026-11-10", "08:00", "15:30"], ["2026-11-13", "14:00", "24:00"]]),
+      persona(guardia, "Diego", false, [["2026-11-04", "14:00", "24:00"], ["2026-11-07", "09:00", "22:00"], ["2026-11-10", "11:00", "17:00"], ["2026-11-15", "10:00", "20:00"]]),
+      persona(guardia, "Sofía", false, [["2026-11-03", "07:00", "15:00"], ["2026-11-05", "17:00", "24:00"], ["2026-11-10", "09:00", "15:00"], ["2026-11-14", "12:00", "20:00"]]),
+    ],
   },
   {
     slug: "express",

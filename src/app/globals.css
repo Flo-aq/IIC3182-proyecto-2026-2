@@ -33,6 +33,7 @@
   --lime: #e7ff6e;
   --pista: #f5f2ee;
   --pista-bloqueo: #ebe7e1;
+  --panel: #f5f3ff;
   --chart-1: #4823ff;
   --chart-2: #7e78ff;
   --chart-3: #d9d2ff;
@@ -93,6 +94,7 @@
   --lime: #e7ff6e;
   --pista: #2a2723;
   --pista-bloqueo: #34302b;
+  --panel: #231f33;
   --chart-1: #a99bff;
   --chart-2: #7e78ff;
   --chart-3: #d9d2ff;
@@ -142,6 +144,7 @@
   --color-lime: var(--lime);
   --color-pista: var(--pista);
   --color-pista-bloqueo: var(--pista-bloqueo);
+  --color-panel: var(--panel);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);

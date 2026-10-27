@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, useEffect, useRef } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 
 import { type Reunion, desdeIso } from "@/lib/reunion";
 import {
@@ -19,6 +19,10 @@ const DIAS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 const FILA_MIN = 16;
 const COLUMNA_MIN = 44;
 const ETIQUETAS = 30;
+/** Espacio entre columnas (px). */
+const ESPACIO = 4;
+/** Ancho mínimo que debe tener cada columna para mostrar 7 días en vez de 5 (px). */
+const COLUMNA_ANCHA = 52;
 
 const RAYAS_BLOQUEO = "repeating-linear-gradient(135deg, rgb(207 199 187) 0 3px, transparent 3px 7px)";
 const ALTO_DIA = 34;
@@ -40,17 +44,41 @@ type Props = {
   onVer?: (clave: string | null) => void;
   /** Avisa si la grilla no cabe y hay que desplazarla (caso borde). */
   onDesborda?: (desborda: boolean) => void;
+  /** Versión chica para pantallas anchas. */
+  compacta?: boolean;
+  /** Muestra todos los días a lo ancho (hasta 7) sin desplazar, aunque las columnas queden más angostas. */
+  todosLosDias?: boolean;
 };
 
 /**
  * La grilla de días y horas. Las filas y las columnas se estiran para llenar el espacio:
  * si caben, no hay scroll; si no, se desplaza y los días y las horas quedan fijos.
- * Con más de 5 columnas, las 5 primeras ocupan todo el ancho y el resto se ve con scroll.
+ * Con más de 5 columnas, las 5 primeras ocupan todo el ancho y el resto se ve con scroll, salvo que quepan más con un ancho cómodo.
  */
-export function Grilla({ reunion: r, columnas, bloqueados, modo, mias, onCambiar, arrastrar = true, personas, fijado, onFijar, onVer, onDesborda }: Props) {
+export function Grilla({ reunion: r, columnas, bloqueados, modo, mias, onCambiar, arrastrar = true, personas, fijado, onFijar, onVer, onDesborda, compacta = false, todosLosDias = false }: Props) {
+  const ajustarAncho = compacta || todosLosDias;
+  // En una pantalla ancha, Respuestas se ve más chica (solo se mira, no se rellena): filas y columnas más finas.
+  // Las filas miden lo mismo que en Mi horario (si no caben todas las horas, se desplaza); los días siempre caben a lo ancho.
+  const filaMin = FILA_MIN;
+  const columnaMin = ajustarAncho ? 0 : COLUMNA_MIN;
+  const etiquetas = compacta ? 24 : ETIQUETAS;
+  const altoDia = compacta ? 28 : ALTO_DIA;
+  // Los días y las horas quedan fijos al desplazar, así que llevan el fondo de la caja donde está la grilla.
+  const fondo = compacta ? "bg-panel" : "bg-background";
   const caja = useRef<HTMLDivElement>(null);
+  const [anchoCaja, setAnchoCaja] = useState(0);
   const pintando = useRef<{ poner: boolean } | null>(null);
   const filas = totalFilas(r);
+
+  useEffect(() => {
+    const el = caja.current;
+    if (!el) return;
+    const medirAncho = () => setAnchoCaja(el.clientWidth);
+    medirAncho();
+    const observador = new ResizeObserver(medirAncho);
+    observador.observe(el);
+    return () => observador.disconnect();
+  }, []);
 
   useEffect(() => {
     const el = caja.current;
@@ -72,10 +100,13 @@ export function Grilla({ reunion: r, columnas, bloqueados, modo, mias, onCambiar
     return modo === "mia" && mias?.has(claveBloque(c.dia, fila)) ? "s" : "e";
   };
 
+  // Con más de 5 días (una semana completa), se ven 5 y el resto con scroll; pero si cada columna puede medir al menos COLUMNA_CASI_ANCHA, se ven los 7.
+  const caben = Math.floor((anchoCaja - etiquetas + ESPACIO) / (COLUMNA_ANCHA + ESPACIO));
+  const visibles = caben >= columnas.length ? columnas.length : COLUMNAS_VISIBLES;
   const ancho =
-    columnas.length > COLUMNAS_VISIBLES
-      ? `calc((100cqw - ${ETIQUETAS}px) / ${COLUMNAS_VISIBLES})`
-      : `minmax(${COLUMNA_MIN}px, 1fr)`;
+    !ajustarAncho && visibles < columnas.length
+      ? `calc((100cqw - ${etiquetas}px - ${(visibles - 1) * ESPACIO}px) / ${visibles})`
+      : `minmax(${columnaMin}px, 1fr)`;
 
   const celdaDe = (x: number, y: number) => document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-c]") ?? null;
 
@@ -84,11 +115,11 @@ export function Grilla({ reunion: r, columnas, bloqueados, modo, mias, onCambiar
     const hora = horaDeFila(r, f);
     const enHora = hora.endsWith(":00");
     celdas.push(
-      <div
-        key={`h${f}`}
-        className={`sticky left-0 z-[1] bg-background pr-1.5 text-right text-[10.5px] leading-none text-muted-foreground tabular-nums ${f === 0 ? "pt-0.5" : "-translate-y-[5px]"}`}
-      >
-        {enHora ? hora.slice(0, 2) : ""}
+      // El texto va en un elemento absoluto para que la hora no le dé alto mínimo a la fila: así las filas pueden achicarse.
+      <div key={`h${f}`} className={`sticky left-0 z-[1] ${fondo}`}>
+        {enHora && (
+          <span className={`absolute right-1.5 text-[10.5px] leading-none text-muted-foreground tabular-nums ${f === 0 ? "top-0.5" : "top-0 -translate-y-[5px]"}`}>{hora.slice(0, 2)}</span>
+        )}
       </div>,
     );
     columnas.forEach((c, i) => {
@@ -160,9 +191,8 @@ export function Grilla({ reunion: r, columnas, bloqueados, modo, mias, onCambiar
       <div
         className="grid min-h-full select-none"
         style={{
-          gridTemplateColumns: `${ETIQUETAS}px repeat(${columnas.length}, ${ancho})`,
-          gridTemplateRows: `${ALTO_DIA}px repeat(${filas}, minmax(${FILA_MIN}px, 1fr))`,
-          columnGap: 4,
+          gridTemplateColumns: `${etiquetas}px repeat(${columnas.length}, ${ajustarAncho ? "minmax(0, 1fr)" : ancho})`,
+          gridTemplateRows: `${altoDia}px repeat(${filas}, minmax(${filaMin}px, 1fr))`,          columnGap: 4,
           touchAction: modo === "mia" && arrastrar ? "none" : undefined,
         }}
         onPointerDown={(e) => {
@@ -182,16 +212,16 @@ export function Grilla({ reunion: r, columnas, bloqueados, modo, mias, onCambiar
         onPointerUp={() => (pintando.current = null)}
         onPointerCancel={() => (pintando.current = null)}
       >
-        <div className="sticky top-0 left-0 z-[3] bg-background" />
+        <div className={`sticky top-0 left-0 z-[3] ${fondo}`} />
         {columnas.map((c) => {
           const d = desdeIso(c.dia);
           return (
             <div
               key={c.dia}
-              className={`sticky top-0 z-[2] flex flex-col items-center justify-center bg-background leading-[1.1] ${c.activa ? "" : "opacity-35"}`}
+              className={`sticky top-0 z-[2] flex flex-col items-center justify-center ${fondo} leading-[1.1] ${c.activa ? "" : "opacity-35"}`}
             >
               <span className="text-[11px] font-bold text-muted-foreground">{DIAS[d.getDay()]}</span>
-              <b className="font-heading text-[15px] whitespace-nowrap">
+              <b className={`font-heading whitespace-nowrap ${compacta ? "text-[12.5px]" : "text-[15px]"}`}>
                 {d.getDate()}
                 <small className="ml-0.5 font-sans text-[9.5px] font-semibold text-muted-foreground">{mesCorto(c.dia)}</small>
               </b>

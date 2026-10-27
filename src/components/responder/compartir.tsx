@@ -48,13 +48,10 @@ export function Compartir({ reunion: r, personas, enlace }: Props) {
 
   return (
     <div className="flex h-full flex-col gap-3 overflow-y-auto pb-3">
-      <div className="flex items-center gap-2 rounded-full border-[1.5px] bg-muted py-1.5 pr-1.5 pl-4">
-        <code className="min-w-0 flex-1 truncate text-[0.8125rem] font-bold">{enlace.replace(/^https?:\/\//, "")}</code>
-        <Button type="button" className="h-10 gap-1.5 rounded-full px-4 text-[0.8125rem] font-bold" onClick={() => copiar(enlace, "Link copiado")}>
-          <Copy />
-          Copiar link
-        </Button>
-      </div>
+      <Button type="button" className="h-12 gap-2 rounded-full text-[0.9375rem] font-bold" onClick={() => copiar(enlace, "Link copiado")}>
+        <Copy />
+        Copiar link
+      </Button>
 
       <section className="rounded-2xl border p-3" aria-label="Quién respondió">
         <div className="mb-2 flex items-baseline justify-between">
@@ -102,7 +99,7 @@ export function Compartir({ reunion: r, personas, enlace }: Props) {
       <div className="flex flex-col gap-1">
         <Button type="button" variant="outline" className="h-12 gap-2 rounded-full border-primary text-[0.9375rem] font-bold text-primary" onClick={() => copiar(resumen, "Resumen copiado")}>
           <Copy />
-          Copiar resumen para el grupo
+          Copiar resumen
         </Button>
         <Button type="button" variant="ghost" className="h-10 self-start rounded-full px-2 text-[0.8125rem] font-bold text-primary" aria-expanded={verTexto} onClick={() => setVerTexto((v) => !v)}>
           {verTexto ? "Ocultar el texto" : "Ver el texto del resumen"}
