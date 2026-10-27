@@ -31,6 +31,8 @@
   --input: #bdb8c8;
   --ring: #4823ff;
   --lime: #e7ff6e;
+  --pista: #f5f2ee;
+  --pista-bloqueo: #ebe7e1;
   --chart-1: #4823ff;
   --chart-2: #7e78ff;
   --chart-3: #d9d2ff;
@@ -89,6 +91,8 @@
   --input: #5f5c6a;
   --ring: #a99bff;
   --lime: #e7ff6e;
+  --pista: #2a2723;
+  --pista-bloqueo: #34302b;
   --chart-1: #a99bff;
   --chart-2: #7e78ff;
   --chart-3: #d9d2ff;
@@ -136,6 +140,8 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-lime: var(--lime);
+  --color-pista: var(--pista);
+  --color-pista-bloqueo: var(--pista-bloqueo);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);

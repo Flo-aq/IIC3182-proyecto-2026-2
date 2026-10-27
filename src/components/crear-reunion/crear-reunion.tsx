@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
+import { EnlacesAyuda } from "@/components/enlace-ayuda";
 import { Logo } from "@/components/logo";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -327,15 +328,18 @@ export function CrearReunion() {
           <Logo className="size-6 text-primary" />
           <span className="font-heading text-lg font-extrabold tracking-tight">WeMeet</span>
         </span>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-9 rounded-full border-foreground px-3.5 font-bold"
-          disabled
-          title="Próximamente: iniciar sesión con Google"
-        >
-          Sign in
-        </Button>
+        <div className="flex items-center gap-1">
+          <EnlacesAyuda />
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9 rounded-full border-foreground px-3.5 font-bold"
+            disabled
+            title="Próximamente: iniciar sesión con Google"
+          >
+            Sign in
+          </Button>
+        </div>
       </header>
       </div>
 

@@ -2,19 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
-const PASOS = [
-  {
-    titulo: "Configura la reunión",
-    texto: "Elige nombre, días, horario y duración de los bloques. Puedes bloquear horarios y definir integrantes clave.",
-  },
-  { titulo: "Comparte el link", texto: "Al crearla te damos un link. Cualquiera lo abre sin cuenta." },
-  { titulo: "Cada persona marca cuándo puede", texto: "Tocan los bloques en que están disponibles y guardan." },
-  {
-    titulo: "Elige el mejor horario",
-    texto: "Ves dónde coincide más gente, copias el resumen y cierras la reunión para enviar la invitación al calendario.",
-  },
-];
+import { PASOS } from "@/lib/ayuda";
 
 type Props = { open: boolean; onOpenChange: (open: boolean) => void };
 
