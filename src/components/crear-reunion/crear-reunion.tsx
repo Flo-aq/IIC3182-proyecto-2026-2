@@ -317,7 +317,7 @@ export function CrearReunion() {
   ];
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background lg:h-dvh lg:min-h-[40rem]">
+    <div className="flex h-dvh min-h-[40rem] flex-col bg-background">
       <div className="sticky top-0 z-30 bg-background">
       <div className="flex h-8 items-center justify-center bg-lime px-4 text-center text-xs font-semibold text-foreground">
         No necesitas cuenta para crear una reunión
@@ -339,11 +339,10 @@ export function CrearReunion() {
       </header>
       </div>
 
-      <div className="mx-auto flex w-full max-w-md flex-1 flex-col md:max-w-xl lg:min-h-0 lg:max-w-5xl">
-      <div className="flex flex-1 flex-col lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[minmax(0,1fr)] lg:items-start lg:gap-10 lg:pr-4">
-      <div className="flex flex-1 flex-col lg:h-full lg:min-h-0">
-      <main className={`flex flex-1 flex-col gap-3 pt-2 pb-2 lg:min-h-0 lg:overflow-y-auto ${PAD}`}>
-        <div className="sticky top-21 z-20 -mt-2 flex h-19 flex-col gap-1 bg-background pt-2 pb-2 lg:top-0">
+      <div className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col md:max-w-xl lg:max-w-5xl">
+      <div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[minmax(0,1fr)] lg:items-start lg:gap-10 lg:pr-4">
+      <div className="flex min-h-0 flex-1 flex-col lg:h-full">
+        <div className={`flex h-19 shrink-0 flex-col gap-1 pt-2 pb-2 ${PAD}`}>
         <div className="flex items-center justify-between gap-3">
           <h1 className="font-heading text-[1.7rem] leading-tight font-extrabold tracking-tight">Crea una reunión</h1>
           <Button
@@ -362,6 +361,8 @@ export function CrearReunion() {
         </p>
         </div>
 
+      <AreaScroll className="min-h-0 flex-1" bordes={false}>
+      <main className={`flex flex-col gap-3 pt-3 pb-2 ${PAD}`}>
         <div className="flex flex-col gap-2 border-y py-2">
           <div className="flex items-center justify-between gap-3">
             <label htmlFor={idPlantilla} className="text-[0.95rem] font-semibold">
@@ -430,7 +431,7 @@ export function CrearReunion() {
             return (
             <AccordionItem key={f.id} value={f.id} data-fila={f.id} className={malo ? "bg-destructive/5" : ""}>
               <AccordionTrigger
-                headerClassName={abierto === f.id ? "sticky top-40 z-10 bg-muted lg:top-19" : ""}
+                headerClassName={abierto === f.id ? "sticky top-0 z-10 bg-muted" : ""}
                 className="min-h-13 items-center rounded-none px-3.5 py-3 hover:no-underline aria-expanded:border-b-border">
                 <span className={`flex shrink-0 items-center gap-1.5 text-[0.95rem] font-semibold ${malo ? "text-destructive" : ""}`}>
                   <span>
@@ -451,6 +452,7 @@ export function CrearReunion() {
           })}
         </Accordion>
       </main>
+      </AreaScroll>
 
       <div className={`sticky bottom-0 z-10 mt-3 border-t bg-background pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] ${PAD}`}>
         <Button

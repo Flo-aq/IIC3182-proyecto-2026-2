@@ -9,13 +9,15 @@ type Props = {
   /** Clases del área que se desliza (alto máximo, relleno). */
   areaClassName?: string;
   label?: string;
+  /** Difumina los bordes donde hay más para ver. Se apaga cuando dentro hay elementos fijos (sticky) que no deben difuminarse. */
+  bordes?: boolean;
 };
 
 /**
  * Área con scroll vertical sin barra de desplazamiento, como la fila de plantillas:
  * los bordes se difuminan donde hay más para ver y una línea fina gris a la derecha muestra cuánto falta.
  */
-export function AreaScroll({ children, className = "", areaClassName = "", label }: Props) {
+export function AreaScroll({ children, className = "", areaClassName = "", label, bordes = true }: Props) {
   const area = useRef<HTMLDivElement>(null);
   const contenido = useRef<HTMLDivElement>(null);
   const [m, setM] = useState({ arriba: false, abajo: false, alto: 100, pos: 0 });
@@ -52,7 +54,11 @@ export function AreaScroll({ children, className = "", areaClassName = "", label
         aria-label={label}
         tabIndex={desborda ? 0 : undefined}
         style={{ "--ft": m.arriba ? "24px" : "0px", "--fb": m.abajo ? "36px" : "0px" } as CSSProperties}
-        className={`min-h-0 flex-1 overflow-y-auto [-webkit-mask-image:linear-gradient(to_bottom,transparent_0,#000_var(--ft),#000_calc(100%-var(--fb)),transparent_100%)] [mask-image:linear-gradient(to_bottom,transparent_0,#000_var(--ft),#000_calc(100%-var(--fb)),transparent_100%)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${areaClassName}`}
+        className={`min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+          bordes
+            ? "[-webkit-mask-image:linear-gradient(to_bottom,transparent_0,#000_var(--ft),#000_calc(100%-var(--fb)),transparent_100%)] [mask-image:linear-gradient(to_bottom,transparent_0,#000_var(--ft),#000_calc(100%-var(--fb)),transparent_100%)]"
+            : ""
+        } ${areaClassName}`}
       >
         <div ref={contenido}>{children}</div>
       </div>
