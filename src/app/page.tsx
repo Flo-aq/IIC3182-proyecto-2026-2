@@ -1,5 +1,5 @@
-import { CrearReunion } from "@/components/crear-reunion/crear-reunion";
+import { CrearReunionConCuenta } from "@/components/crear-reunion/crear-reunion-con-cuenta";
 
 export default function Home() {
-  return <CrearReunion />;
+  return <CrearReunionConCuenta />;
 }

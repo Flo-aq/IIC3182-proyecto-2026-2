@@ -1,14 +1,12 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Hand, Info, PaintBucket, Plus, Share2 } from "lucide-react";
-import Link from "next/link";
+import { ChevronLeft, ChevronRight, Hand, Info, PaintBucket, Share2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { EnlacesAyuda } from "@/components/enlace-ayuda";
-import { Logo } from "@/components/logo";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { AvisoSuperior, BarraSuperior } from "@/components/barra-superior";
+import { Button } from "@/components/ui/button";
 import { BOTON } from "@/lib/botones";
 import { useEsPantallaAncha, useOrigen } from "@/lib/cliente";
 import {
@@ -238,29 +236,10 @@ export function Responder({ datos }: { datos: ReunionConRespuestas }) {
 
   return (
     <div className="mx-auto flex h-dvh min-h-[40rem] w-full flex-col bg-background lg:max-w-[88rem]">
-      {!listo && (
-        <div className="flex h-8 shrink-0 items-center justify-center bg-lime px-4 text-center text-xs font-semibold text-foreground">
-          Basta con dar tu nombre para rellenar
-        </div>
-      )}
-      <header className={`flex h-12 shrink-0 items-center justify-between ${PAD}`}>
-        <span className="flex items-center gap-1">
-          <Logo className="size-6 text-primary" />
-          <span className="font-heading text-lg font-extrabold tracking-tight">WeMeet</span>
-        </span>
-        <div className="flex items-center gap-1">
-          <EnlacesAyuda />
-          <Link
-            href="/"
-            aria-label="Crear otra reunión"
-            title="Crear otra reunión"
-            className={buttonVariants({ size: "icon", className: "size-9 rounded-full" })}
-          >
-            <Plus />
-          </Link>
-          {listo && <MenuUsuario nombre={nombre.trim()} clave={esClave} editando={retomada !== null} onCambiar={cambiarNombre} />}
-        </div>
-      </header>
+      {!listo && <AvisoSuperior>Basta con dar tu nombre para rellenar</AvisoSuperior>}
+      <BarraSuperior
+        cuenta={listo ? <MenuUsuario nombre={nombre.trim()} clave={esClave} editando={retomada !== null} onCambiar={cambiarNombre} /> : undefined}
+      />
 
       <div className={`flex shrink-0 items-center ${PAD}`}>
         <h1 className="min-w-0 truncate font-heading text-xl leading-tight font-extrabold tracking-tight">{r.titulo}</h1>

@@ -6,12 +6,10 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { BOTON } from "@/lib/botones";
-import { EnlacesAyuda } from "@/components/enlace-ayuda";
-import { Logo } from "@/components/logo";
+import { AvisoSuperior, BarraSuperior } from "@/components/barra-superior";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useSesion } from "@/lib/sesion";
-import { BotonCuenta } from "@/components/boton-cuenta";
 import type { PlantillaDeCuenta } from "@/lib/plantillas";
 import {
   PLANTILLAS,
@@ -189,7 +187,8 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
       const res = await fetch("/api/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(r),
+        // Los tags son de la cuenta: sin sesión el servidor los ignora.
+        body: JSON.stringify({ ...r, etiquetas: conCuenta ? etiquetas : [] }),
       });
       const cuerpo = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(cuerpo.error ?? "No pudimos crear la reunión.");
@@ -246,19 +245,8 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
   return (
     <div className="flex h-dvh min-h-[40rem] flex-col bg-background">
       <div className="sticky top-0 z-30 bg-background">
-      <div className="flex h-8 items-center justify-center bg-lime px-4 text-center text-xs font-semibold text-foreground">
-        No necesitas cuenta para crear una reunión
-      </div>
-      <header className={`flex h-13 items-center justify-between ${PAD}`}>
-        <span className="flex items-center gap-1">
-          <Logo className="size-6 text-primary" />
-          <span className="font-heading text-lg font-extrabold tracking-tight">WeMeet</span>
-        </span>
-        <div className="flex items-center gap-1">
-          <EnlacesAyuda />
-          <BotonCuenta />
-        </div>
-      </header>
+      <AvisoSuperior>No necesitas cuenta para crear una reunión</AvisoSuperior>
+      <BarraSuperior />
       </div>
 
       <div className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col md:max-w-xl lg:max-w-5xl">

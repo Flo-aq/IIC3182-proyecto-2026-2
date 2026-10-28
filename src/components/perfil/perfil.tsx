@@ -1,15 +1,13 @@
 "use client";
 
-import { Pencil, Plus, SlidersHorizontal } from "lucide-react";
-import Link from "next/link";
+import { Pencil, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { BotonCuenta } from "@/components/boton-cuenta";
-import { EnlacesAyuda } from "@/components/enlace-ayuda";
-import { Logo } from "@/components/logo";
+import { BarraSuperior } from "@/components/barra-superior";
 import { NotificarDialog, type Aviso, textoAviso } from "@/components/responder/notificar-dialog";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { agregarTag as agregarTagApi, quitarTag as quitarTagApi } from "@/lib/api-cuenta";
 import { BOTON } from "@/lib/botones";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useEsPantallaAncha, useOrigen } from "@/lib/cliente";
@@ -72,7 +70,20 @@ export function Perfil({ reunionesIniciales, plantillasIniciales }: { reunionesI
       return false;
     }
     cambiar(r.slug, (x) => ({ ...x, tags: [...x.tags, tag] }));
+    // Se ve al instante; si el servidor lo rechaza, se deshace y se avisa por qué.
+    agregarTagApi(r.slug, tag).catch((e: Error) => {
+      cambiar(r.slug, (x) => ({ ...x, tags: x.tags.filter((t) => t !== tag) }));
+      toast.error(e.message);
+    });
     return true;
+  };
+
+  const quitarTag = (r: ReunionDePerfil, tag: string) => {
+    cambiar(r.slug, (x) => ({ ...x, tags: x.tags.filter((y) => y !== tag) }));
+    quitarTagApi(r.slug, tag).catch((e: Error) => {
+      cambiar(r.slug, (x) => ({ ...x, tags: [...x.tags, tag] }));
+      toast.error(e.message);
+    });
   };
 
   const alternarTag = (tag: string) => setElegidos((e) => (e.includes(tag) ? e.filter((t) => t !== tag) : [...e, tag]));
@@ -119,7 +130,7 @@ export function Perfil({ reunionesIniciales, plantillasIniciales }: { reunionesI
           reunion={r}
           tags={tags}
           editando={editando}
-          onQuitarTag={(t) => cambiar(r.slug, (x) => ({ ...x, tags: x.tags.filter((y) => y !== t) }))}
+          onQuitarTag={(t) => quitarTag(r, t)}
           onAgregarTag={(t) => agregarTag(r, t)}
           onTopeReunion={avisarTopeReunion}
           onAviso={() => setAvisoDe(r.slug)}
@@ -138,19 +149,7 @@ export function Perfil({ reunionesIniciales, plantillasIniciales }: { reunionesI
 
   return (
     <div className="mx-auto flex min-h-dvh w-full flex-col bg-background pb-8 lg:max-w-[88rem]">
-      <header className={`flex h-12 shrink-0 items-center justify-between ${PAD}`}>
-        <Link href="/" className="flex items-center gap-1" aria-label="WeMeet, ir al inicio">
-          <Logo className="size-6 text-primary" />
-          <span className="font-heading text-lg font-extrabold tracking-tight">WeMeet</span>
-        </Link>
-        <div className="flex items-center gap-1">
-          <EnlacesAyuda />
-          <Link href="/" aria-label="Crear una reunión" title="Crear una reunión" className={buttonVariants({ size: "icon", className: "size-9 rounded-full" })}>
-            <Plus />
-          </Link>
-          <BotonCuenta />
-        </div>
-      </header>
+      <BarraSuperior />
 
       <main className={`mx-auto flex w-full max-w-2xl flex-col lg:max-w-none ${PAD}`}>
         <h1 className="mt-2 font-heading text-xl font-extrabold tracking-tight">Tu perfil</h1>
