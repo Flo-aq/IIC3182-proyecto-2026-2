@@ -11,7 +11,10 @@ export class ErrorApi extends Error {
 }
 
 export function respuestaDeError(e: unknown): Response {
-  if (e instanceof ErrorApi) return Response.json({ error: e.message }, { status: e.status });
+  if (e instanceof ErrorApi) {
+    // En un 429, "Retry-After" le dice a quien pidió cuántos segundos esperar (la ventana más corta de los límites es de 10 minutos).
+    return Response.json({ error: e.message }, { status: e.status, headers: e.status === 429 ? { "Retry-After": "60" } : undefined });
+  }
   console.error(e);
   return Response.json({ error: "Algo salió mal de nuestro lado. Intenta de nuevo." }, { status: 500 });
 }

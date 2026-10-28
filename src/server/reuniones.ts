@@ -3,7 +3,7 @@ import { TZDate } from "@date-fns/tz";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { instanteDe } from "@/lib/calendario";
-import { MAX_BLOQUEOS, MAX_CLAVES, MAX_DIAS, MAX_NOMBRE, MAX_TITULO } from "@/lib/limites";
+import { MAX_BLOQUEOS, MAX_CLAVES, MAX_DIAS, MAX_NOMBRE, MAX_RESPUESTAS, MAX_TITULO } from "@/lib/limites";
 import { MAX_TAGS_POR_REUNION } from "@/lib/perfil";
 import { OPCIONES_BLOQUE, type Reunion, aMinutos, bloquesDelDia, problemas } from "@/lib/reunion";
 import { type ReunionConRespuestas, totalFilas } from "@/lib/respuestas";
@@ -280,7 +280,10 @@ export async function guardarRespuesta(slug: string, entrada: unknown, userId: s
     p_user: userId,
     p_slots: instantes,
   });
-  if (error) throw error;
+  if (error) {
+    if (error.message.includes(`máximo de ${MAX_RESPUESTAS} respuestas`)) throw new ErrorApi(409, `Esta reunión ya tiene el máximo de ${MAX_RESPUESTAS} respuestas.`);
+    throw error;
+  }
   const res = data as { is_key: boolean; key_denied: boolean };
   return { clave: res.is_key, claveDenegada: res.key_denied, eventId: e.id };
 }
