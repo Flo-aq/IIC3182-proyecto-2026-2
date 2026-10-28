@@ -2,13 +2,14 @@
 
 import { User } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { BOTON } from "@/lib/botones";
-import { useSesion } from "@/lib/sesion";
+import { urlDeLogin, useSesion } from "@/lib/sesion";
 import { cn } from "@/lib/utils";
 
 /**
@@ -16,14 +17,18 @@ import { cn } from "@/lib/utils";
  * (Mi perfil y Cerrar sesión). Es el mismo en todas las pantallas.
  */
 export function BotonCuenta() {
-  const { conCuenta, nombre, cerrar } = useSesion();
+  const { conCuenta, nombre, cargando, cerrar } = useSesion();
   const [abierto, setAbierto] = useState(false);
+  const ruta = usePathname();
+
+  // Mientras se lee la sesión se reserva el espacio, para que la barra no salte.
+  if (cargando) return <span aria-hidden="true" className="h-9 w-20" />;
 
   if (!conCuenta) {
     return (
-      <Button type="button" variant="outline" className={cn(BOTON.compacto, "border-foreground")} disabled title="Próximamente: iniciar sesión con Google">
+      <a href={urlDeLogin(ruta)} className={cn(buttonVariants({ variant: "outline" }), BOTON.compacto, "border-foreground")}>
         Sign in
-      </Button>
+      </a>
     );
   }
 
@@ -46,9 +51,9 @@ export function BotonCuenta() {
           type="button"
           variant="ghost"
           className={cn(BOTON.texto, "self-center")}
-          onClick={() => {
+          onClick={async () => {
             setAbierto(false);
-            cerrar();
+            await cerrar();
             toast.success("Sesión cerrada");
           }}
         >

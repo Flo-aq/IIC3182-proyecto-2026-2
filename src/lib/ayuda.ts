@@ -78,7 +78,7 @@ export const GUIAS: Guia[] = [
       "En cada reunión ves si pediste aviso (y a qué correo) y puedes copiar su link.",
       "En la pestaña Plantillas ves tus plantillas (lo que se repite de una reunión: horario, duración del bloque, bloqueos, integrantes clave y tags). Puedes usarlas al crear una reunión, crear nuevas, editarlas, duplicarlas y borrarlas.",
     ],
-    nota: "Iniciar sesión con una cuenta llegará próximamente.",
+    nota: "Inicia sesión con tu cuenta de Google desde «Sign in» arriba a la derecha.",
   },
 ];
 
@@ -185,7 +185,7 @@ export const GRUPOS_PREGUNTAS: { vista: string; id: string; corto: string; pregu
     preguntas: [
       {
         pregunta: "¿Cómo llego a mi perfil?",
-        respuesta: "Con una cuenta. Escribir tu nombre al responder una reunión no abre tu perfil. Iniciar sesión llegará próximamente.",
+        respuesta: "Con una cuenta. Escribir tu nombre al responder una reunión no abre tu perfil. Inicia sesión con tu cuenta de Google desde «Sign in».",
       },
       {
         pregunta: "¿Qué veo en mi perfil?",
