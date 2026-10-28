@@ -37,7 +37,23 @@ const esquemaReunion = z.object({
   bloqueos: z
     .array(z.object({ id: z.string().max(40), dias: z.array(fecha).max(MAX_DIAS), desde: hora, hasta: horaFin }))
     .max(MAX_BLOQUEOS),
+  /** Nombre de quien organiza (sin cuenta): con él podrá cerrar la reunión desde cualquier dispositivo. */
+  organizador: z.string().trim().max(MAX_NOMBRE).optional(),
 });
+
+/** Para comparar nombres como lo hace la pantalla al entrar a editar una respuesta: sin mayúsculas ni espacios de sobra. */
+const mismoNombre = (a: string | null | undefined, b: string | null | undefined): boolean =>
+  Boolean(a?.trim() && b?.trim() && a.trim().toLowerCase() === b.trim().toLowerCase());
+
+/**
+ * El nombre del organizador, aparte del resto de la reunión: así, si todavía no se corrió la migración que crea la columna
+ * `owner_name`, solo falla esto (se trata como "sin nombre") y la reunión se sigue abriendo.
+ */
+async function nombreDelOrganizador(eventId: string): Promise<string | null> {
+  const { data, error } = await db().from("events").select("owner_name").eq("id", eventId).maybeSingle();
+  if (error) return null;
+  return (data as { owner_name: string | null } | null)?.owner_name ?? null;
+}
 
 const esquemaRespuesta = z.object({
   nombre: z.string().trim().min(1).max(MAX_NOMBRE),
@@ -94,6 +110,13 @@ export async function crearReunion(entrada: unknown, ownerId: string | null = nu
       // Los tags son un extra: si alguno falla (por ejemplo, el tope de la cuenta) la reunión ya está creada y se queda sin ellos.
       if (ownerId && etiquetas?.success && etiquetas.data.length) {
         await ponerTags(ownerId, id as string, etiquetas.data).catch((e) => console.error("tags de la reunión nueva", e));
+      }
+      // El nombre del organizador es un extra, como los tags: si no se pudo guardar (por ejemplo, falta correr la migración
+      // que crea la columna), la reunión ya está creada y se cierra solo con la llave del navegador.
+      const organizador = parsed.data.organizador;
+      if (!ownerId && organizador) {
+        const { error: eNombre } = await db().from("events").update({ owner_name: organizador }).eq("id", id as string);
+        if (eNombre) console.error("nombre del organizador", eNombre.message);
       }
       return { slug, tokenDueno };
     }
@@ -156,7 +179,7 @@ export async function leerReunion(slug: string): Promise<ReunionLeida | null> {
     disp: p.availability.map((a) => aBloque(reunion, a.slot_start)).filter((b): b is string => b !== null),
   }));
   const cerrada = e.status === "closed" && e.chosen_start ? aBloque(reunion, e.chosen_start) : null;
-  return { slug: e.slug, reunion, personas, cerrada, duenoId: e.owner_id };
+  return { slug: e.slug, reunion, personas, cerrada, duenoId: e.owner_id, organizador: await nombreDelOrganizador(e.id) };
 }
 
 /** Lo que se le manda al navegador: la reunión sin el dato de quién la creó. */
@@ -173,8 +196,11 @@ type FilaCierre = Pick<FilaReunion, "id" | "status" | "owner_id" | "timezone" | 
 
 const COLUMNAS_CIERRE = "id, status, owner_id, owner_token, timezone, days, start_time, end_time, slot_minutes, blocked_ranges(days, start_time, end_time)";
 
-/** Carga la reunión y comprueba que quien pide es su creador: por su cuenta o por la llave que se guardó al crearla. */
-async function reunionDelDueno(slug: string, tokenDueno: string | undefined, userId: string | null): Promise<FilaCierre> {
+/**
+ * Carga la reunión y comprueba que quien pide es su creador: por su cuenta, por la llave que se guardó al crearla o por el
+ * nombre de quien organizaba (como al editar una respuesta, basta con escribir el mismo nombre).
+ */
+async function reunionDelDueno(slug: string, tokenDueno: string | undefined, userId: string | null, nombre?: string): Promise<FilaCierre> {
   const { data, error } = SLUG_VALIDO.test(slug)
     ? await db().from("events").select(COLUMNAS_CIERRE).eq("slug", slug).maybeSingle()
     : { data: null, error: null };
@@ -185,20 +211,23 @@ async function reunionDelDueno(slug: string, tokenDueno: string | undefined, use
   const a = Buffer.from(tokenDueno ?? "");
   const b = Buffer.from(e.owner_token);
   const porLlave = a.length === b.length && a.length > 0 && timingSafeEqual(a, b);
-  if (!porCuenta && !porLlave) throw new ErrorApi(403, "Solo quien creó la reunión puede cerrarla o reabrirla.");
+  const porNombre = !porCuenta && !porLlave && mismoNombre(nombre, await nombreDelOrganizador(e.id));
+  if (!porCuenta && !porLlave && !porNombre) throw new ErrorApi(403, "Solo quien creó la reunión puede cerrarla o reabrirla.");
   return e;
 }
 
 const esquemaCierre = z.object({
   bloque: z.string().regex(/^\d{4}-\d{2}-\d{2}\|\d{1,4}$/).optional(),
   tokenDueno: z.string().max(100).optional(),
+  /** El nombre con que quien organiza entró a la reunión. */
+  nombre: z.string().trim().max(MAX_NOMBRE).optional(),
 });
 
 /** Cierra la reunión con el bloque elegido: desde entonces nadie puede cambiar respuestas. */
 export async function cerrarReunion(slug: string, entrada: unknown, userId: string | null): Promise<void> {
   const parsed = esquemaCierre.safeParse(entrada);
   if (!parsed.success || !parsed.data.bloque) throw new ErrorApi(400, "Elige un horario para cerrar la reunión.");
-  const e = await reunionDelDueno(slug, parsed.data.tokenDueno, userId);
+  const e = await reunionDelDueno(slug, parsed.data.tokenDueno, userId, parsed.data.nombre);
   if (e.status === "closed") throw new ErrorApi(409, "Esta reunión ya está cerrada.");
 
   const r: Reunion = {
@@ -230,7 +259,7 @@ export async function cerrarReunion(slug: string, entrada: unknown, userId: stri
 export async function reabrirReunion(slug: string, entrada: unknown, userId: string | null): Promise<void> {
   const parsed = esquemaCierre.safeParse(entrada);
   if (!parsed.success) throw new ErrorApi(400, "La petición no se entendió.");
-  const e = await reunionDelDueno(slug, parsed.data.tokenDueno, userId);
+  const e = await reunionDelDueno(slug, parsed.data.tokenDueno, userId, parsed.data.nombre);
   if (e.status === "open") return;
   const { error } = await db().from("events").update({ status: "open", chosen_start: null, closed_at: null }).eq("id", e.id);
   if (error) throw error;

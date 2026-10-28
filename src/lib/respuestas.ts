@@ -7,7 +7,14 @@ import { type Reunion, aIso, aMinutos, bloquesDelDia, desdeIso, etiquetaDia, zon
 export type Persona = { nombre: string; clave: boolean; disp: string[] };
 
 /** `cerrada` es el bloque ("AAAA-MM-DD|fila") que se eligió al cerrar la reunión, o null si sigue abierta. */
-export type ReunionConRespuestas = { slug: string; reunion: Reunion; personas: Persona[]; cerrada: string | null };
+export type ReunionConRespuestas = {
+  slug: string;
+  reunion: Reunion;
+  personas: Persona[];
+  cerrada: string | null;
+  /** El nombre con que quien organiza (sin cuenta) puede cerrar la reunión, o null si no lo puso. */
+  organizador: string | null;
+};
 
 /** Con más días que esto, la grilla muestra semanas de lunes a domingo y flechas para ir de una a otra. */
 export const MAX_DIAS_SIN_SEMANAS = 7;

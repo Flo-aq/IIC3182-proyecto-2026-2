@@ -205,7 +205,7 @@ export function textoDiasRegla(b: Bloqueo, dias: string[]): string {
 }
 
 export type Problema = {
-  campo: "nombre" | "dias" | "horario" | "bloque" | "bloqueos";
+  campo: "nombre" | "organizador" | "dias" | "horario" | "bloque" | "bloqueos";
   /** Nombre del campo tal como se lee en la pantalla. */
   etiqueta: string;
   mensaje: string;

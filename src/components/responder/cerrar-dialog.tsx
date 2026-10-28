@@ -31,6 +31,8 @@ type Props = {
   onCerrada?: () => void;
   /** Si la reunión ya estaba cerrada, el bloque elegido: el popup abre directo en la confirmación (horario, calendario y copiar). */
   confirmadaInicial?: string | null;
+  /** El nombre con que quien organiza entró a la reunión: con él (sin cuenta) se puede cerrar desde cualquier dispositivo. */
+  nombre?: string;
 };
 
 /**
@@ -45,6 +47,7 @@ export function CerrarDialog({
   personas,
   onCerrada,
   confirmadaInicial = null,
+  nombre,
 }: Props) {
   const router = useRouter();
   const grupos = useMemo(() => gruposDeCierre(r, personas), [r, personas]);
@@ -70,7 +73,7 @@ export function CerrarDialog({
       const res = await fetch(`/api/events/${slug}/close`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bloque: elegido, tokenDueno: leerLlave(slug) }),
+        body: JSON.stringify({ bloque: elegido, tokenDueno: leerLlave(slug), nombre }),
       });
       if (!res.ok)
         throw new Error(
