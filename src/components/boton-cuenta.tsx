@@ -2,7 +2,7 @@
 
 import { User } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -20,6 +20,7 @@ export function BotonCuenta() {
   const { conCuenta, nombre, cargando, cerrar } = useSesion();
   const [abierto, setAbierto] = useState(false);
   const ruta = usePathname();
+  const router = useRouter();
 
   // Mientras se lee la sesión se reserva el espacio, para que la barra no salte.
   if (cargando) return <span aria-hidden="true" className="h-9 w-20" />;
@@ -55,6 +56,8 @@ export function BotonCuenta() {
             setAbierto(false);
             await cerrar();
             toast.success("Sesión cerrada");
+            // Las pantallas que ya sabían de la cuenta desde el servidor (por ejemplo, una reunión) se actualizan.
+            router.refresh();
           }}
         >
           Cerrar sesión

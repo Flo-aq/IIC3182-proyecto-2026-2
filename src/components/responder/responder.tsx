@@ -20,7 +20,12 @@ import {
   mapaBloqueados,
   semanasDe,
 } from "@/lib/respuestas";
+import { textoBloque } from "@/lib/cierre";
+import { useTieneLlave } from "@/lib/dueno";
+import { MAX_NOMBRE } from "@/lib/limites";
+import { useSesion } from "@/lib/sesion";
 import { Compartir } from "./compartir";
+import { Confirmada } from "./confirmada";
 import { DetallesDialog } from "./detalles-dialog";
 import { Grilla } from "./grilla";
 import { Acceso, MenuUsuario } from "./identidad";
@@ -55,22 +60,44 @@ function NavSemana({ columnas, semana, total, onSemana }: { columnas: Columna[];
 }
 
 /** Pantalla de quien recibe el link: marca cuándo puede, mira al grupo y comparte el estado. */
-export function Responder({ datos }: { datos: ReunionConRespuestas }) {
-  const { reunion: r, slug } = datos;
+/** El nombre de la cuenta como se usa al responder: sin espacios de más y con el largo permitido. */
+const nombreDeCuenta = (n: string): string => n.replace(/\s+/g, " ").trim().slice(0, MAX_NOMBRE);
+
+/**
+ * Con cuenta no se pide el nombre: si el servidor ya sabe que hay una (`cuentaNombre`), Mi horario parte lista desde la primera
+ * pantalla, con la respuesta que ya había con ese nombre, si la había. Así no se ve un instante la pantalla de acceso.
+ */
+function entradaInicial(datos: ReunionConRespuestas, cuentaNombre: string | null) {
+  if (cuentaNombre === null || datos.cerrada) return null;
+  const nombre = nombreDeCuenta(cuentaNombre);
+  const previa = datos.personas.find((p) => p.nombre.trim().toLowerCase() === nombre.toLowerCase());
+  return { nombre: previa?.nombre ?? nombre, retomada: previa?.nombre ?? null, disp: previa?.disp ?? null };
+}
+
+export function Responder({ datos, esDuenoCuenta, cuentaNombre }: { datos: ReunionConRespuestas; esDuenoCuenta: boolean; cuentaNombre: string | null }) {
+  const { reunion: r, slug, cerrada } = datos;
+  // Cierra la reunión quien la creó: con su cuenta, o desde el navegador donde la creó (guardó una llave).
+  const tieneLlave = useTieneLlave(slug);
+  const esDueno = esDuenoCuenta || tieneLlave;
+  const [entrada] = useState(() => entradaInicial(datos, cuentaNombre));
   const [pestana, setPestana] = useState(0);
-  const [mias, setMias] = useState<Set<string>>(new Set());
-  const [guardadas, setGuardadas] = useState<string[] | null>(null);
-  const [nombre, setNombre] = useState("");
+  const [mias, setMias] = useState<Set<string>>(() => new Set(entrada?.disp ?? []));
+  const [guardadas, setGuardadas] = useState<string[] | null>(entrada?.disp ?? null);
+  const [nombre, setNombre] = useState(entrada?.nombre ?? "");
   /** Casilla "Soy integrante clave" de quien responde por primera vez. */
   const [clave, setClave] = useState(false);
   /** Ya dijiste quién eres: se muestra la grilla en vez de la pantalla de acceso. */
-  const [listo, setListo] = useState(false);
+  const [listo, setListo] = useState(entrada !== null);
   /** Nombre de la respuesta que ya existía y se está editando (escribir el mismo nombre equivale a entrar). */
-  const [retomada, setRetomada] = useState<string | null>(null);
+  const [retomada, setRetomada] = useState<string | null>(entrada?.retomada ?? null);
   const [guardando, setGuardando] = useState(false);
   /** Si lo que acabas de guardar quedó como integrante clave (hasta que llegue la lista actualizada del servidor). */
   const [claveGuardada, setClaveGuardada] = useState(false);
   const router = useRouter();
+  const { conCuenta, nombre: nombreCuenta } = useSesion();
+  /** Para entrar con el nombre de la cuenta una sola vez (si después se pulsa "Cambiar", no se vuelve a entrar sola). */
+  const entroSola = useRef(entrada !== null);
+  const hayCuenta = cuentaNombre !== null || conCuenta;
   const [verDetalles, setVerDetalles] = useState(false);
   const [semana, setSemana] = useState(0);
   const [fijado, setFijado] = useState<string | null>(null);
@@ -129,18 +156,33 @@ export function Responder({ datos }: { datos: ReunionConRespuestas }) {
   const textoHoras = `${Number.isInteger(horas) ? horas : horas.toFixed(1).replace(".", ",")} h`;
   const sinCambios = guardadas !== null && guardadas.length === mias.size && guardadas.every((k) => mias.has(k));
 
-  const continuar = () => {
-    if (existente) {
-      setRetomada(existente.nombre);
-      setNombre(existente.nombre);
-      setMias(new Set(existente.disp));
-      setGuardadas(existente.disp);
-      toast.success(`Cargamos la respuesta de ${existente.nombre}`, { description: "Ya puedes cambiar tus horarios." });
+  /** Entra a Mi horario con ese nombre; si ya había una respuesta con él, la carga para editarla. */
+  const entrarComo = (escrito: string) => {
+    const buscar = escrito.trim().toLowerCase();
+    const previa = datos.personas.find((p) => p.nombre.trim().toLowerCase() === buscar);
+    if (previa) {
+      setRetomada(previa.nombre);
+      setNombre(previa.nombre);
+      setMias(new Set(previa.disp));
+      setGuardadas(previa.disp);
+      toast.success(`Cargamos la respuesta de ${previa.nombre}`, { description: "Ya puedes cambiar tus horarios." });
     } else {
+      setNombre(escrito.trim());
       setRetomada(null);
     }
     setListo(true);
   };
+
+  const continuar = () => entrarComo(nombre);
+
+  // Con cuenta no se pide el nombre: se entra solo con el de la cuenta (después se puede cambiar desde el menú de arriba).
+  useEffect(() => {
+    if (!conCuenta || entroSola.current || cerrada) return;
+    entroSola.current = true;
+    entrarComo(nombreDeCuenta(nombreCuenta));
+    // Solo cuando se sabe que hay cuenta.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conCuenta]);
 
   /** Volver a la pantalla de acceso para cambiar el nombre (lo que marcaste de cero se mantiene). */
   const cambiarNombre = () => {
@@ -223,6 +265,16 @@ export function Responder({ datos }: { datos: ReunionConRespuestas }) {
 
   const pie: ReactNode = (
     <>
+      {/* Con cuenta no se pasa por la pantalla de acceso, así que aquí se declara si eres integrante clave (solo la primera vez). */}
+      {hayCuenta && hayClaves && !clavesLlenas && !retomada && (
+        <label className="mb-2 flex cursor-pointer items-center gap-2.5 rounded-2xl border px-3.5 py-2.5 text-sm">
+          <input type="checkbox" checked={clave} className="size-5 shrink-0 accent-primary" onChange={(e) => setClave(e.target.checked)} />
+          <span>
+            <b className="font-semibold">Soy integrante clave</b>
+            <span className="block text-xs text-muted-foreground">Solo si la reunión depende de ti.</span>
+          </span>
+        </label>
+      )}
       <p className="mb-1.5 text-center text-xs text-muted-foreground">
         {marcados} {marcados === 1 ? "bloque" : "bloques"} de {r.bloqueMin} min · {textoHoras}
       </p>
@@ -236,9 +288,14 @@ export function Responder({ datos }: { datos: ReunionConRespuestas }) {
 
   return (
     <div className="mx-auto flex h-dvh min-h-[40rem] w-full flex-col bg-background lg:max-w-[88rem]">
-      {!listo && <AvisoSuperior>Basta con dar tu nombre para rellenar</AvisoSuperior>}
+      {cerrada ? (
+        <AvisoSuperior>Reunión confirmada · {textoBloque(r, cerrada)}</AvisoSuperior>
+      ) : (
+        !listo && <AvisoSuperior>Basta con dar tu nombre para rellenar</AvisoSuperior>
+      )}
+      {/* Con cuenta, arriba va el menú de la cuenta (Mi perfil y Cerrar sesión); el del nombre es solo para quien responde sin cuenta. */}
       <BarraSuperior
-        cuenta={listo ? <MenuUsuario nombre={nombre.trim()} clave={esClave} editando={retomada !== null} onCambiar={cambiarNombre} /> : undefined}
+        cuenta={listo && !hayCuenta ? <MenuUsuario nombre={nombre.trim()} clave={esClave} editando={retomada !== null} onCambiar={cambiarNombre} /> : undefined}
       />
 
       <div className={`flex shrink-0 items-center ${PAD}`}>
@@ -246,12 +303,13 @@ export function Responder({ datos }: { datos: ReunionConRespuestas }) {
         <Button
           type="button"
           variant="ghost"
-          className="size-8 shrink-0 rounded-full text-muted-foreground hover:bg-transparent hover:text-foreground [&_svg:not([class*='size-'])]:size-[1.125rem]"
-          aria-label="Detalles de la reunión"
+          className="ml-2 h-6 shrink-0 gap-1 rounded-full bg-muted px-2.5 text-xs font-semibold text-muted-foreground hover:bg-muted/70 hover:text-foreground [&_svg:not([class*='size-'])]:size-3.5"
+          aria-label="Ver la información de la reunión"
           aria-haspopup="dialog"
           onClick={() => setVerDetalles(true)}
         >
           <Info />
+          Ver info
         </Button>
         {escritorio && (
           <div ref={cajaCompartir} className="relative ml-auto">
@@ -275,7 +333,7 @@ export function Responder({ datos }: { datos: ReunionConRespuestas }) {
               hidden={!panelAbierto}
               className="absolute top-full right-0 z-30 mt-2 max-h-[calc(100dvh-9rem)] w-[19rem] overflow-y-auto rounded-3xl border bg-background p-3 shadow-2xl outline-none"
             >
-              <Compartir reunion={r} personas={personas} enlace={enlace} />
+              <Compartir slug={slug} reunion={r} personas={personas} enlace={enlace} cerrada={cerrada} esDueno={esDueno} />
             </section>
           </div>
         )}
@@ -305,7 +363,7 @@ export function Responder({ datos }: { datos: ReunionConRespuestas }) {
       )}
 
       <main className={`relative flex min-h-0 flex-1 flex-col gap-1.5 ${PAD} ${escritorio ? "pt-2 pb-4" : ""}`}>
-        {semanal && !escritorio && (pestana === 1 || (pestana === 0 && listo)) && (
+        {semanal && !escritorio && (pestana === 1 || (pestana === 0 && listo && !cerrada)) && (
           <NavSemana columnas={columnas} semana={semana} total={semanas.length} onSemana={setSemana} />
         )}
 
@@ -313,9 +371,14 @@ export function Responder({ datos }: { datos: ReunionConRespuestas }) {
           {verMia && (
             // En pantalla ancha lleva el mismo margen que el panel de Respuestas, para que los títulos y las flechas queden a la misma altura.
             <section aria-label="Mi horario" className={`relative flex min-h-0 min-w-0 flex-col gap-1.5 ${escritorio ? "py-3" : "flex-1"}`}>
-              {escritorio && <Encabezado titulo="Mi horario" pista={listo ? "toca o arrastra para rellenar" : undefined} />}
-              {escritorio && listo && semanal && <NavSemana columnas={columnas} semana={semana} total={semanas.length} onSemana={setSemana} />}
-              {!listo && escritorio && (
+              {cerrada && (
+                <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto pb-6">
+                  <Confirmada slug={slug} reunion={r} bloque={cerrada} enlace={enlace} />
+                </div>
+              )}
+              {!cerrada && escritorio && <Encabezado titulo="Mi horario" pista={listo ? "toca o arrastra para rellenar" : undefined} />}
+              {!cerrada && escritorio && listo && semanal && <NavSemana columnas={columnas} semana={semana} total={semanas.length} onSemana={setSemana} />}
+              {!cerrada && !listo && escritorio && (
                 // En pantalla ancha, Mi horario se ve vacía y apagada detrás de la tarjeta del nombre.
                 <div className="min-h-0 flex-1" aria-hidden="true" inert>
                   <div className="h-full opacity-30 grayscale-[0.3]">
@@ -323,7 +386,7 @@ export function Responder({ datos }: { datos: ReunionConRespuestas }) {
                   </div>
                 </div>
               )}
-              {!listo && (
+              {!cerrada && !listo && (
                 <div className={escritorio ? "absolute inset-0 z-10 grid place-items-center overflow-auto p-3" : "flex min-h-0 flex-1 flex-col"}>
                   <div className={escritorio ? "w-[24rem] max-w-full rounded-3xl border bg-background px-5 pt-5 shadow-xl" : "flex min-h-0 flex-1 flex-col"}>
                     <Acceso
@@ -339,18 +402,18 @@ export function Responder({ datos }: { datos: ReunionConRespuestas }) {
                   </div>
                 </div>
               )}
-              {listo && (
+              {!cerrada && listo && (
                 <div className="min-h-0 flex-1">
                   <Grilla reunion={r} columnas={columnas} bloqueados={bloqueados} modo="mia" mias={mias} onCambiar={cambiar} arrastrar={escritorio || !desbordaMia || pintar} onDesborda={setDesbordaMia} todosLosDias={escritorio} />
                 </div>
               )}
-              {listo && desbordaMia && !escritorio && (
+              {!cerrada && listo && desbordaMia && !escritorio && (
                 <Button type="button" variant="outline" className={`${BOTON.compacto} absolute right-3 bottom-3 z-10 bg-background shadow-md`} aria-pressed={pintar} onClick={() => setPintar((p) => !p)}>
                   {pintar ? <Hand /> : <PaintBucket />}
                   {pintar ? "Mover" : "Rellenar"}
                 </Button>
               )}
-              {escritorio && listo && <div className="shrink-0 border-t pt-2">{pie}</div>}
+              {!cerrada && escritorio && listo && <div className="shrink-0 border-t pt-2">{pie}</div>}
             </section>
           )}
 
@@ -388,13 +451,13 @@ export function Responder({ datos }: { datos: ReunionConRespuestas }) {
 
           {verCompartir && (
             <section aria-label="Compartir" className="min-h-0 min-w-0">
-              <Compartir reunion={r} personas={personas} enlace={enlace} />
+              <Compartir slug={slug} reunion={r} personas={personas} enlace={enlace} cerrada={cerrada} esDueno={esDueno} />
             </section>
           )}
         </div>
       </main>
 
-      {!escritorio && pestana === 0 && listo && (
+      {!escritorio && pestana === 0 && listo && !cerrada && (
         <footer className={`shrink-0 border-t bg-background pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] ${PAD}`}>{pie}</footer>
       )}
 

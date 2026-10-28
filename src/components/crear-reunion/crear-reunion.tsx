@@ -9,6 +9,7 @@ import { BOTON } from "@/lib/botones";
 import { AvisoSuperior, BarraSuperior } from "@/components/barra-superior";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { guardarLlave } from "@/lib/dueno";
 import { useSesion } from "@/lib/sesion";
 import type { PlantillaDeCuenta } from "@/lib/plantillas";
 import {
@@ -87,7 +88,7 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
   const [usarPlantilla, setUsarPlantilla] = useState(false);
   const [plantilla, setPlantilla] = useState(-1);
   const [intento, setIntento] = useState(false);
-  const [creada, setCreada] = useState<{ codigo: string; reunion: Reunion } | null>(null);
+  const [creada, setCreada] = useState<{ codigo: string; reunion: Reunion; copiado: boolean } | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [info, setInfo] = useState(false);
   const [verResumen, setVerResumen] = useState(false);
@@ -102,23 +103,26 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
     const zona = Intl.DateTimeFormat().resolvedOptions().timeZone;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setHoy(ahora);
-    // Si se llega desde "Usar" en el perfil (/?plantilla=u1), la reunión parte con esa plantilla ya aplicada.
-    // Las plantillas propias son de la cuenta: sin ellas, el parámetro no encuentra nada y se ignora.
-    const id = new URLSearchParams(window.location.search).get("plantilla");
-    const disponibles: (Plantilla & { tags?: string[] })[] = [...plantillasPropias, ...PLANTILLAS];
-    const elegida = id ? disponibles.findIndex((p) => "id" in p && p.id === id) : -1;
-    if (elegida >= 0) {
-      setUsarPlantilla(true);
-      setPlantilla(elegida);
-      setEtiquetas(disponibles[elegida].tags ?? []);
-    }
-    setR((prev) => {
-      const base = { ...prev, dias: proximosHabiles(ahora, 5), zona: zona || prev.zona };
-      return elegida >= 0 ? aplicarPlantilla(base, disponibles[elegida], () => `b${++contador.current}`) : base;
-    });
-    // Solo al montar: la fecha de hoy, la zona y la plantilla del link se leen una vez.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setR((prev) => ({ ...prev, dias: proximosHabiles(ahora, 5), zona: zona || prev.zona }));
   }, []);
+
+  // Si se llega desde "Usar" en el perfil (/?plantilla=<id>), la reunión parte con esa plantilla ya aplicada. Las plantillas
+  // de la cuenta llegan después de abrir la pantalla, así que se aplica en cuanto aparece la que el link nombra (una sola vez).
+  const plantillaDelLink = useRef(false);
+  useEffect(() => {
+    if (plantillaDelLink.current || !plantillasPropias.length) return;
+    const id = new URLSearchParams(window.location.search).get("plantilla");
+    if (!id) return;
+    const disponibles: (Plantilla & { tags?: string[] })[] = [...plantillasPropias, ...PLANTILLAS];
+    const elegida = disponibles.findIndex((p) => "id" in p && p.id === id);
+    if (elegida < 0) return;
+    plantillaDelLink.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUsarPlantilla(true);
+    setPlantilla(elegida);
+    setEtiquetas(disponibles[elegida].tags ?? []);
+    setR((prev) => aplicarPlantilla(prev, disponibles[elegida], () => `b${++contador.current}`));
+  }, [plantillasPropias]);
 
   // Mientras el aviso sigue a la vista, se actualiza con lo que todavía falta; cuando ya no falta nada, se cierra solo.
   useEffect(() => {
@@ -146,6 +150,7 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
       <Exito
         codigo={creada.codigo}
         reunion={creada.reunion}
+        copiado={creada.copiado}
         onOtra={() => {
           setCreada(null);
           setIntento(false);
@@ -192,7 +197,18 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
       });
       const cuerpo = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(cuerpo.error ?? "No pudimos crear la reunión.");
-      setCreada({ codigo: cuerpo.slug, reunion: r });
+      // La llave del creador queda en este navegador: con ella podrá cerrar la reunión aunque no tenga cuenta.
+      guardarLlave(cuerpo.slug, cuerpo.tokenDueno);
+      // El link se copia solo: es lo primero que se hace con una reunión nueva. Si el navegador no deja, la pantalla lo avisa.
+      let copiado = false;
+      try {
+        await navigator.clipboard.writeText(`${window.location.origin}/e/${cuerpo.slug}`);
+        copiado = true;
+        toast.success("Link copiado");
+      } catch {
+        // Sin permiso del portapapeles: queda el botón "Copiar" en la pantalla siguiente.
+      }
+      setCreada({ codigo: cuerpo.slug, reunion: r, copiado });
       window.scrollTo(0, 0);
     } catch (e) {
       toast.error(e instanceof TypeError ? "No pudimos conectarnos. Revisa tu internet e intenta de nuevo." : (e as Error).message);

@@ -1,6 +1,7 @@
 "use client";
 
 import { Pencil, SlidersHorizontal } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -15,6 +16,7 @@ import type { PlantillaDeCuenta } from "@/lib/plantillas";
 import { avisarTopeReunion, avisarTopeTotal } from "@/lib/avisos-tags";
 import { type ReunionDePerfil, MAX_TAGS_POR_REUNION, MAX_TAGS_TOTALES, ORDEN_INICIAL, type Orden, type Tipo, buscarTag, filtrar, ordenar, todosLosTags } from "@/lib/perfil";
 import { cn } from "@/lib/utils";
+import { CerrarDesdePerfil } from "./cerrar-desde-perfil";
 import { FilaReunion } from "./fila-reunion";
 import { FiltrosHoja, FiltrosLateral } from "./filtros";
 import { PlantillasPerfil } from "./plantillas-perfil";
@@ -37,6 +39,8 @@ export function Perfil({ reunionesIniciales, plantillasIniciales }: { reunionesI
   /** La reunión cuyo aviso se está pidiendo o cambiando. */
   const [avisoDe, setAvisoDe] = useState<string | null>(null);
   const [copiado, setCopiado] = useState<string | null>(null);
+  /** La reunión que se está cerrando desde el perfil. */
+  const [cierreDe, setCierreDe] = useState<string | null>(null);
   const [vista, setVista] = useState<"reuniones" | "plantillas">("reuniones");
   const [plantillas, setPlantillas] = useState<PlantillaDeCuenta[]>(plantillasIniciales);
 
@@ -109,12 +113,16 @@ export function Perfil({ reunionesIniciales, plantillasIniciales }: { reunionesI
   const reunionDelAviso = reuniones.find((r) => r.slug === avisoDe) ?? null;
   const propsFiltros = { conteoTipos, tipo, onTipo: setTipo, orden, onOrden: cambiarOrden, tags, conteoTags, activos, onTag: alternarTag };
 
+  // Sin reuniones no hay nada que filtrar ni a qué ponerle tags: esos botones se apagan.
+  const sinReuniones = reuniones.length === 0;
+
   const botonEditar = (
     <Button
       type="button"
       variant="ghost"
       className={cn(BOTON.texto, editando && "text-foreground underline")}
       aria-pressed={editando}
+      disabled={sinReuniones}
       onClick={() => setEditando((e) => !e)}
     >
       <Pencil />
@@ -140,9 +148,17 @@ export function Perfil({ reunionesIniciales, plantillasIniciales }: { reunionesI
           }}
           onCopiar={() => copiar(r)}
           copiado={copiado === r.slug}
+          onCerrar={() => setCierreDe(r.slug)}
         />
       ))}
     </ul>
+  ) : sinReuniones ? (
+    <div className="mt-4 rounded-2xl border-[1.5px] border-dashed p-5 text-center text-sm text-muted-foreground">
+      <p>Todavía no tienes reuniones. Las que crees o respondas con tu cuenta aparecerán aquí.</p>
+      <Link href="/" className="mt-2 inline-block font-bold text-primary hover:underline">
+        Crear una reunión
+      </Link>
+    </div>
   ) : (
     <p className="mt-4 rounded-2xl border-[1.5px] border-dashed p-5 text-center text-sm text-muted-foreground">Ninguna reunión coincide. Quita un filtro para ver más.</p>
   );
@@ -184,7 +200,7 @@ export function Perfil({ reunionesIniciales, plantillasIniciales }: { reunionesI
                   {visibles.length} de {reuniones.length} reuniones
                 </span>
               ) : (
-                <Button type="button" variant="outline" className={BOTON.compacto} aria-haspopup="dialog" onClick={() => setHoja(true)}>
+                <Button type="button" variant="outline" className={BOTON.compacto} aria-haspopup="dialog" disabled={sinReuniones} onClick={() => setHoja(true)}>
                   <SlidersHorizontal />
                   Filtros
                   {nFiltros > 0 && <span className="rounded-full bg-primary px-1.5 text-[0.6875rem] leading-[1.125rem] text-primary-foreground">{nFiltros}</span>}
@@ -195,7 +211,10 @@ export function Perfil({ reunionesIniciales, plantillasIniciales }: { reunionesI
 
             {escritorio ? (
               <div className="mt-2 grid grid-cols-[13rem_minmax(0,1fr)] gap-8">
-                <FiltrosLateral {...propsFiltros} />
+                {/* Sin reuniones, los filtros se ven apagados y no se pueden tocar. */}
+                <div inert={sinReuniones} className={sinReuniones ? "opacity-50" : undefined}>
+                  <FiltrosLateral {...propsFiltros} />
+                </div>
                 <div>{lista}</div>
               </div>
             ) : (
@@ -239,6 +258,17 @@ export function Perfil({ reunionesIniciales, plantillasIniciales }: { reunionesI
             cambiar(reunionDelAviso.slug, (x) => ({ ...x, aviso: a }));
             toast.success("Aviso activado", { description: `Te avisaremos ${textoAviso(a)} a ${a.correo}.` });
           }}
+        />
+      )}
+
+      {cierreDe && (
+        <CerrarDesdePerfil
+          key={cierreDe}
+          slug={cierreDe}
+          onOpenChange={(abierto) => {
+            if (!abierto) setCierreDe(null);
+          }}
+          onCerrada={() => cambiar(cierreDe, (x) => ({ ...x, cerrada: true }))}
         />
       )}
     </div>

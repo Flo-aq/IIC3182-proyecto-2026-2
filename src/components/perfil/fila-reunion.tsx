@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, BellOff, Check, Copy, Plus, X } from "lucide-react";
+import { Bell, BellOff, CalendarCheck, Check, Copy, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useId, useState } from "react";
 
@@ -28,6 +28,8 @@ type Props = {
   onQuitarAviso: () => void;
   onCopiar: () => void;
   copiado: boolean;
+  /** Abre el popup de cierre: para elegir el horario (reuniones que creaste y siguen abiertas) o, si ya se cerró, para ver cuándo quedó. */
+  onCerrar: () => void;
 };
 
 /** Los botones de aviso y copiar: solo un icono en el celular, y con texto desde lg. Es el botón compacto, redondo cuando no tiene texto. */
@@ -164,7 +166,7 @@ function AgregarTag({ reunion: r, tags, onAgregarTag }: Pick<Props, "reunion" | 
 }
 
 /** Una reunión del perfil: cuándo la creaste o respondiste, sus tags, cuántas respuestas tiene, el aviso y copiar el link. */
-export function FilaReunion({ reunion: r, tags, editando, onQuitarTag, onAgregarTag, onTopeReunion, onAviso, onQuitarAviso, onCopiar, copiado }: Props) {
+export function FilaReunion({ reunion: r, tags, editando, onQuitarTag, onAgregarTag, onTopeReunion, onAviso, onQuitarAviso, onCopiar, copiado, onCerrar }: Props) {
   return (
     <li className="border-b py-3.5">
       <div className="flex items-start justify-between gap-3">
@@ -177,7 +179,23 @@ export function FilaReunion({ reunion: r, tags, editando, onQuitarTag, onAgregar
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <AvisoBoton reunion={r} onAviso={onAviso} onQuitarAviso={onQuitarAviso} />
+          {/* Solo quien creó la reunión puede cerrarla. Una vez cerrada, el mismo botón muestra cuándo quedó (agendar y copiar), y ya no tiene sentido pedir un aviso. */}
+          {r.cerrada ? (
+            <Button type="button" variant="outline" className={cn(BOTON_ICONO, "text-primary")} aria-haspopup="dialog" aria-label={`Ver cuándo quedó la reunión ${r.titulo}`} onClick={onCerrar}>
+              <CalendarCheck />
+              <span className="hidden lg:inline">Ver horario</span>
+            </Button>
+          ) : (
+            <>
+              {r.rol === "creada" && (
+                <Button type="button" variant="outline" className={cn(BOTON_ICONO, "text-primary")} aria-haspopup="dialog" aria-label={`Cerrar la reunión ${r.titulo}`} onClick={onCerrar}>
+                  <CalendarCheck />
+                  <span className="hidden lg:inline">Cerrar</span>
+                </Button>
+              )}
+              <AvisoBoton reunion={r} onAviso={onAviso} onQuitarAviso={onQuitarAviso} />
+            </>
+          )}
           <Button type="button" variant="outline" className={cn(BOTON_ICONO, "text-primary")} aria-label={`Copiar el link de ${r.titulo}`} onClick={onCopiar}>
             {copiado ? <Check /> : <Copy />}
             <span className="hidden lg:inline">{copiado ? "Copiado" : "Copiar link"}</span>
@@ -186,6 +204,7 @@ export function FilaReunion({ reunion: r, tags, editando, onQuitarTag, onAgregar
       </div>
       <ul className="mt-2.5 flex flex-wrap items-center gap-1.5" aria-label="Tags">
         <li className="rounded-full bg-lime px-2.5 py-0.5 text-xs font-bold">{r.rol === "creada" ? "Creada" : "Respondida"}</li>
+        {r.cerrada && <li className="rounded-full bg-lime px-2.5 py-0.5 text-xs font-bold">Cerrada</li>}
         {r.tags.map((t) => (
           <li key={t} className="inline-flex max-w-full items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
             <span className="truncate">{t}</span>

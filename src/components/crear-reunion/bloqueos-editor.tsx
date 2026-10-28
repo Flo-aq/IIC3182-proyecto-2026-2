@@ -9,16 +9,21 @@ import { BOTON } from "@/lib/botones";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
+  FIN_DEL_DIA,
   type Bloqueo,
   POR_DEFECTO,
   type Reunion,
   aIso,
+  aMinutos,
   desdeIso,
   duplicarBloqueo,
   sumarMinutos,
   textoDiasRegla,
 } from "@/lib/reunion";
 import { HoraField } from "./hora-field";
+
+/** El fin de un bloqueo puede ser el final del día (24:00), así que el inicio puede llegar hasta 5 min antes. */
+const ULTIMO_INICIO = "23:55";
 
 type Props = {
   reunion: Reunion;
@@ -108,6 +113,18 @@ export function BloqueosEditor({ reunion, nuevoId, reglasInvalidas, onChange, si
   const cambiar = (id: string, cambio: Partial<Bloqueo>) =>
     onChange(bloqueos.map((b) => (b.id === id ? { ...b, ...cambio } : b)));
 
+  /**
+   * El inicio puede ser cualquier hora (menos la última, que no deja lugar para un fin). Si el nuevo inicio alcanza o pasa al
+   * fin, el fin se corre para que el bloqueo siga durando lo mismo (como mínimo 5 minutos).
+   */
+  const cambiarDesde = (b: Bloqueo, desde: string) => {
+    if (aMinutos(b.hasta) > aMinutos(desde)) return cambiar(b.id, { desde });
+    const duracion = Math.max(5, aMinutos(b.hasta) - aMinutos(b.desde));
+    const fin = aMinutos(desde) + duracion;
+    const hasta = fin >= 24 * 60 ? FIN_DEL_DIA : `${String(Math.floor(fin / 60)).padStart(2, "0")}:${String(fin % 60).padStart(2, "0")}`;
+    cambiar(b.id, { desde, hasta });
+  };
+
   return (
     <div className="flex flex-col gap-2">
       {bloqueos.length === 0 && <p className="text-sm text-muted-foreground">Ningún horario bloqueado.</p>}
@@ -153,9 +170,9 @@ export function BloqueosEditor({ reunion, nuevoId, reglasInvalidas, onChange, si
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5">
             <HoraField
               value={b.desde}
-              onChange={(v) => cambiar(b.id, { desde: v })}
+              onChange={(v) => cambiarDesde(b, v)}
               porDefecto={POR_DEFECTO.bloqueoDesde}
-              max={sumarMinutos(b.hasta, -5)}
+              max={ULTIMO_INICIO}
               label={`Regla ${i + 1}: bloquear desde`}
             />
             <span aria-hidden="true" className="text-muted-foreground">
@@ -166,6 +183,7 @@ export function BloqueosEditor({ reunion, nuevoId, reglasInvalidas, onChange, si
               onChange={(v) => cambiar(b.id, { hasta: v })}
               porDefecto={POR_DEFECTO.bloqueoHasta}
               min={sumarMinutos(b.desde, 5)}
+              medianoche
               label={`Regla ${i + 1}: bloquear hasta`}
             />
           </div>

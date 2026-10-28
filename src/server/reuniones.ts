@@ -1,9 +1,11 @@
 import "server-only";
 import { TZDate } from "@date-fns/tz";
+import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
+import { instanteDe } from "@/lib/calendario";
 import { MAX_BLOQUEOS, MAX_CLAVES, MAX_DIAS, MAX_NOMBRE, MAX_TITULO } from "@/lib/limites";
 import { MAX_TAGS_POR_REUNION } from "@/lib/perfil";
-import { OPCIONES_BLOQUE, type Reunion, aMinutos, problemas } from "@/lib/reunion";
+import { OPCIONES_BLOQUE, type Reunion, aMinutos, bloquesDelDia, problemas } from "@/lib/reunion";
 import { type ReunionConRespuestas, totalFilas } from "@/lib/respuestas";
 import { db } from "./db";
 import { ErrorApi } from "./errores";
@@ -46,12 +48,8 @@ const esquemaRespuesta = z.object({
 
 // ---- hora de la reunión ↔ instante ----
 
-/** El instante en que empieza el bloque `fila` del día `dia`, contado en la zona de la reunión. */
-function instante(r: Pick<Reunion, "zona" | "desde" | "bloqueMin">, dia: string, fila: number): string {
-  const [a, m, d] = dia.split("-").map(Number);
-  const minutos = aMinutos(r.desde) + fila * r.bloqueMin;
-  return new TZDate(a, m - 1, d, Math.floor(minutos / 60), minutos % 60, 0, r.zona).toISOString();
-}
+/** El instante (ISO) en que empieza el bloque `fila` del día `dia`, contado en la zona de la reunión. */
+const instante = (r: Pick<Reunion, "zona" | "desde" | "bloqueMin">, dia: string, fila: number): string => instanteDe(r, dia, fila).toISOString();
 
 /** Lo inverso: el día y la fila a los que corresponde un instante guardado, o null si no cae en un bloque. */
 function aBloque(r: Pick<Reunion, "zona" | "desde" | "bloqueMin">, iso: string): string | null {
@@ -116,18 +114,24 @@ type FilaReunion = {
   end_time: string;
   slot_minutes: number;
   max_key: number;
+  status: "open" | "closed";
+  chosen_start: string | null;
+  owner_id: string | null;
   blocked_ranges: { days: string[]; start_time: string; end_time: string }[];
   participants: { name: string; is_key: boolean; availability: { slot_start: string }[] }[];
 };
 
 const SLUG_VALIDO = /^[a-z0-9-]{1,40}$/;
 
-export async function leerReunion(slug: string): Promise<ReunionConRespuestas | null> {
+/** La reunión con sus respuestas, y quién la creó (`duenoId`, solo para el servidor: no debe llegar al navegador). */
+export type ReunionLeida = ReunionConRespuestas & { duenoId: string | null };
+
+export async function leerReunion(slug: string): Promise<ReunionLeida | null> {
   if (!SLUG_VALIDO.test(slug)) return null;
   const { data, error } = await db()
     .from("events")
     .select(
-      "id, slug, title, timezone, days, start_time, end_time, slot_minutes, max_key, blocked_ranges(days, start_time, end_time), participants(name, is_key, created_at, availability(slot_start))",
+      "id, slug, title, timezone, days, start_time, end_time, slot_minutes, max_key, status, chosen_start, owner_id, blocked_ranges(days, start_time, end_time), participants(name, is_key, created_at, availability(slot_start))",
     )
     .eq("slug", slug)
     .order("created_at", { referencedTable: "participants", ascending: true })
@@ -151,7 +155,83 @@ export async function leerReunion(slug: string): Promise<ReunionConRespuestas | 
     clave: p.is_key,
     disp: p.availability.map((a) => aBloque(reunion, a.slot_start)).filter((b): b is string => b !== null),
   }));
-  return { slug: e.slug, reunion, personas };
+  const cerrada = e.status === "closed" && e.chosen_start ? aBloque(reunion, e.chosen_start) : null;
+  return { slug: e.slug, reunion, personas, cerrada, duenoId: e.owner_id };
+}
+
+/** Lo que se le manda al navegador: la reunión sin el dato de quién la creó. */
+export const paraElNavegador = ({ duenoId, ...datos }: ReunionLeida): ReunionConRespuestas => {
+  void duenoId;
+  return datos;
+};
+
+// ---- cerrar y reabrir ----
+
+type FilaCierre = Pick<FilaReunion, "id" | "status" | "owner_id" | "timezone" | "days" | "start_time" | "end_time" | "slot_minutes" | "blocked_ranges"> & {
+  owner_token: string;
+};
+
+const COLUMNAS_CIERRE = "id, status, owner_id, owner_token, timezone, days, start_time, end_time, slot_minutes, blocked_ranges(days, start_time, end_time)";
+
+/** Carga la reunión y comprueba que quien pide es su creador: por su cuenta o por la llave que se guardó al crearla. */
+async function reunionDelDueno(slug: string, tokenDueno: string | undefined, userId: string | null): Promise<FilaCierre> {
+  const { data, error } = SLUG_VALIDO.test(slug)
+    ? await db().from("events").select(COLUMNAS_CIERRE).eq("slug", slug).maybeSingle()
+    : { data: null, error: null };
+  if (error) throw error;
+  if (!data) throw new ErrorApi(404, "No encontramos esa reunión.");
+  const e = data as unknown as FilaCierre;
+  const porCuenta = userId !== null && e.owner_id === userId;
+  const a = Buffer.from(tokenDueno ?? "");
+  const b = Buffer.from(e.owner_token);
+  const porLlave = a.length === b.length && a.length > 0 && timingSafeEqual(a, b);
+  if (!porCuenta && !porLlave) throw new ErrorApi(403, "Solo quien creó la reunión puede cerrarla o reabrirla.");
+  return e;
+}
+
+const esquemaCierre = z.object({
+  bloque: z.string().regex(/^\d{4}-\d{2}-\d{2}\|\d{1,4}$/).optional(),
+  tokenDueno: z.string().max(100).optional(),
+});
+
+/** Cierra la reunión con el bloque elegido: desde entonces nadie puede cambiar respuestas. */
+export async function cerrarReunion(slug: string, entrada: unknown, userId: string | null): Promise<void> {
+  const parsed = esquemaCierre.safeParse(entrada);
+  if (!parsed.success || !parsed.data.bloque) throw new ErrorApi(400, "Elige un horario para cerrar la reunión.");
+  const e = await reunionDelDueno(slug, parsed.data.tokenDueno, userId);
+  if (e.status === "closed") throw new ErrorApi(409, "Esta reunión ya está cerrada.");
+
+  const r: Reunion = {
+    titulo: "",
+    zona: e.timezone,
+    dias: e.days,
+    desde: hhmm(e.start_time),
+    hasta: hhmm(e.end_time),
+    bloqueMin: e.slot_minutes,
+    claves: 0,
+    bloqueos: e.blocked_ranges.map((b, i) => ({ id: `b${i}`, dias: b.days, desde: hhmm(b.start_time), hasta: hhmm(b.end_time) })),
+  };
+  const [dia, filaTxt] = parsed.data.bloque.split("|");
+  const fila = Number(filaTxt);
+  if (!r.dias.includes(dia) || fila >= totalFilas(r) || !bloquesDelDia(r, dia)[fila]) {
+    throw new ErrorApi(400, "Ese horario no existe en esta reunión o está bloqueado.");
+  }
+
+  const { error } = await db()
+    .from("events")
+    .update({ status: "closed", chosen_start: instante(r, dia, fila), closed_at: new Date().toISOString() })
+    .eq("id", e.id);
+  if (error) throw error;
+}
+
+/** Vuelve a abrir una reunión cerrada: se borra el horario elegido y se puede volver a responder. */
+export async function reabrirReunion(slug: string, entrada: unknown, userId: string | null): Promise<void> {
+  const parsed = esquemaCierre.safeParse(entrada);
+  if (!parsed.success) throw new ErrorApi(400, "La petición no se entendió.");
+  const e = await reunionDelDueno(slug, parsed.data.tokenDueno, userId);
+  if (e.status === "open") return;
+  const { error } = await db().from("events").update({ status: "open", chosen_start: null, closed_at: null }).eq("id", e.id);
+  if (error) throw error;
 }
 
 // ---- guardar respuesta ----

@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, BellOff, Copy } from "lucide-react";
+import { Bell, BellOff, CalendarCheck, Copy } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { BOTON } from "@/lib/botones";
 import type { Reunion } from "@/lib/reunion";
 import { type PersonaSet, textoResumen } from "@/lib/respuestas";
+import { cn } from "@/lib/utils";
+import { CerrarDialog } from "./cerrar-dialog";
+import { Confirmada } from "./confirmada";
 import { type Aviso, NotificarDialog, textoAviso } from "./notificar-dialog";
 import { PuntoClave } from "./punto-clave";
 
@@ -23,12 +26,22 @@ async function copiar(texto: string, aviso: string) {
   }
 }
 
-type Props = { reunion: Reunion; personas: PersonaSet[]; enlace: string };
+type Props = {
+  slug: string;
+  reunion: Reunion;
+  personas: PersonaSet[];
+  enlace: string;
+  /** El bloque elegido si la reunión ya se cerró. */
+  cerrada: string | null;
+  /** Quien creó la reunión puede cerrarla y reabrirla desde aquí. */
+  esDueno: boolean;
+};
 
-/** Link para invitar, quién respondió y un texto resumen para mandar al grupo. */
-export function Compartir({ reunion: r, personas, enlace }: Props) {
+/** Link para invitar, quién respondió, un texto resumen para mandar al grupo y, para quien creó la reunión, cerrarla. */
+export function Compartir({ slug, reunion: r, personas, enlace, cerrada, esDueno }: Props) {
   const [verTexto, setVerTexto] = useState(false);
   const [verAviso, setVerAviso] = useState(false);
+  const [verCierre, setVerCierre] = useState(false);
   const [aviso, setAviso] = useState<Aviso | null>(null);
   /** La lista de quién respondió muestra a lo más dos líneas; con "Ver más" se ve el resto. */
   const [abierta, setAbierta] = useState(false);
@@ -49,6 +62,8 @@ export function Compartir({ reunion: r, personas, enlace }: Props) {
 
   return (
     <div className="flex h-full flex-col gap-3 overflow-y-auto pb-3">
+      {cerrada && <Confirmada compacta slug={slug} reunion={r} bloque={cerrada} enlace={enlace} />}
+
       <Button type="button" className={`${BOTON.principal} gap-2`} onClick={() => copiar(enlace, "Link copiado")}>
         <Copy />
         Copiar link
@@ -85,33 +100,44 @@ export function Compartir({ reunion: r, personas, enlace }: Props) {
         </p>
       </section>
 
-      <div className="flex flex-col gap-1.5">
-        {aviso ? (
-          // Un aviso no se edita: se quita y se pide uno nuevo.
-          <>
-            <Button
-              type="button"
-              variant="ghost"
-              className={`${BOTON.peligro} self-start`}
-              onClick={() => {
-                setAviso(null);
-                toast.success("Aviso quitado");
-              }}
-            >
-              <BellOff />
-              Quitar mi aviso
+      {/* Una reunión cerrada ya no espera respuestas: no se cierra de nuevo ni tiene sentido pedir un aviso. */}
+      {!cerrada && (
+        <div className="flex flex-col gap-2">
+          {/* Cerrar y Notificarme pesan lo mismo: son dos botones iguales, uno bajo el otro. */}
+          {esDueno && (
+            <Button type="button" variant="outline" className={BOTON.secundario} aria-haspopup="dialog" onClick={() => setVerCierre(true)}>
+              <CalendarCheck />
+              Cerrar reunión
             </Button>
-            <p role="status" className="px-2 text-xs text-muted-foreground">
-              Te avisaremos {textoAviso(aviso)} a {aviso.correo}. Para cambiarlo, quítalo y pide uno nuevo.
-            </p>
-          </>
-        ) : (
-          <Button type="button" variant="outline" className={BOTON.secundario} aria-haspopup="dialog" onClick={() => setVerAviso(true)}>
-            <Bell />
-            Notificarme
-          </Button>
-        )}
-      </div>
+          )}
+          {aviso ? (
+            // Un aviso no se edita: se quita y se pide uno nuevo.
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className={cn(BOTON.secundario, "border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive")}
+                onClick={() => {
+                  setAviso(null);
+                  toast.success("Aviso quitado");
+                }}
+              >
+                <BellOff />
+                Quitar mi aviso
+              </Button>
+              <p role="status" className="px-2 text-xs text-muted-foreground">
+                Te avisaremos {textoAviso(aviso)} a {aviso.correo}. Para cambiarlo, quítalo y pide uno nuevo.
+              </p>
+            </>
+          ) : (
+            <Button type="button" variant="outline" className={BOTON.secundario} aria-haspopup="dialog" onClick={() => setVerAviso(true)}>
+              <Bell />
+              Notificarme
+            </Button>
+          )}
+          <hr className="my-1 border-t-2 border-foreground/25" />
+        </div>
+      )}
 
       <div className="flex flex-col gap-1">
         <Button type="button" variant="outline" className={BOTON.secundario} onClick={() => copiar(resumen, "Resumen copiado")}>
@@ -123,6 +149,8 @@ export function Compartir({ reunion: r, personas, enlace }: Props) {
         </Button>
         {verTexto && <pre className="rounded-2xl border bg-muted p-3 font-sans text-xs/relaxed break-words whitespace-pre-wrap">{resumen}</pre>}
       </div>
+
+      {esDueno && <CerrarDialog open={verCierre} onOpenChange={setVerCierre} slug={slug} reunion={r} personas={personas} />}
       <NotificarDialog
         open={verAviso}
         onOpenChange={setVerAviso}

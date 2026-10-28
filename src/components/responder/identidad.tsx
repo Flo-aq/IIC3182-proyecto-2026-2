@@ -36,18 +36,11 @@ export function Acceso({ nombre, onNombre, clave, onClave, onContinuar, hayClave
   const idClave = useId();
   const campo = useRef<HTMLInputElement>(null);
   const ruta = usePathname();
-  const { conCuenta, nombre: nombreCuenta } = useSesion();
+  const { conCuenta } = useSesion();
 
   useEffect(() => {
     campo.current?.focus();
   }, []);
-
-  // Con cuenta, el nombre parte con el de la cuenta (se puede cambiar).
-  useEffect(() => {
-    if (conCuenta && !nombre) onNombre(nombreCuenta);
-    // Solo cuando se conoce la cuenta: si la persona borra el nombre, no se vuelve a poner.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conCuenta]);
 
   return (
     <div className="flex flex-1 flex-col justify-center pb-6">
