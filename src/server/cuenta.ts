@@ -5,6 +5,7 @@ import { MAX_TAGS_POR_REUNION, type ReunionDePerfil } from "@/lib/perfil";
 import { type PlantillaDeCuenta, detalleDe } from "@/lib/plantillas";
 import { OPCIONES_BLOQUE, aMinutos } from "@/lib/reunion";
 import { usuarioActual } from "@/lib/supabase/servidor";
+import { type FilaAviso, comoAviso } from "./avisos";
 import { db } from "./db";
 import { ErrorApi } from "./errores";
 import { hora, horaFin } from "./reuniones";
@@ -43,24 +44,44 @@ export async function listarReuniones(userId: string): Promise<ReunionDePerfilAp
     .in("event_id", filas.map((f) => f.event_id))
     .eq("tags.user_id", userId);
   if (e2) throw e2;
-  const { data: estados, error: e3 } = await db().from("events").select("id, status").in("id", filas.map((f) => f.event_id));
+  const { data: estados, error: e3 } = await db().from("events").select("id, status, timezone").in("id", filas.map((f) => f.event_id));
   if (e3) throw e3;
   const cerradas = new Set((estados as { id: string; status: string }[]).filter((s) => s.status === "closed").map((s) => s.id));
+  const zonas = new Map((estados as unknown as { id: string; timezone: string }[]).map((s) => [s.id, s.timezone]));
+
+  // El aviso por correo que la cuenta tiene pendiente en cada reunión.
+  const { data: avisos, error: e4 } = await db()
+    .from("notifications")
+    .select("id, event_id, email, kind, target_count, notify_at")
+    .eq("user_id", userId)
+    .eq("status", "pending")
+    .in("event_id", filas.map((f) => f.event_id));
+  if (e4) throw e4;
+  const avisoPorEvento = new Map(
+    (avisos as unknown as (Pick<FilaAviso, "id" | "event_id" | "email" | "kind" | "target_count" | "notify_at">)[]).map((a) => [a.event_id, a]),
+  );
   const tagsPorEvento = new Map<string, string[]>();
   for (const t of etiquetas as unknown as { event_id: string; tags: { name: string } }[]) {
     tagsPorEvento.set(t.event_id, [...(tagsPorEvento.get(t.event_id) ?? []), t.tags.name]);
   }
 
-  return filas.map((f) => ({
-    slug: f.slug,
-    titulo: f.title,
-    tags: (tagsPorEvento.get(f.event_id) ?? []).sort((a, b) => a.localeCompare(b, "es")),
-    respuestas: Number(f.response_count),
-    rol: f.role,
-    fecha: f.role_date,
-    aviso: null,
-    cerrada: cerradas.has(f.event_id),
-  }));
+  return filas.map((f) => {
+    const cerrada = cerradas.has(f.event_id);
+    const a = avisoPorEvento.get(f.event_id);
+    return {
+      slug: f.slug,
+      titulo: f.title,
+      tags: (tagsPorEvento.get(f.event_id) ?? []).sort((x, y) => x.localeCompare(y, "es")),
+      respuestas: Number(f.response_count),
+      rol: f.role,
+      fecha: f.role_date,
+      // Una reunión cerrada ya no manda avisos.
+      aviso: a && !cerrada ? comoAviso(a, zonas.get(f.event_id) ?? "UTC") : null,
+      avisoId: a && !cerrada ? a.id : null,
+      zona: zonas.get(f.event_id) ?? "UTC",
+      cerrada,
+    };
+  });
 }
 
 /** La reunión por su link, si la cuenta la creó o la respondió; si no, 404 (no se revela si existe). */

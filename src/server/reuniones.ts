@@ -222,6 +222,8 @@ export async function cerrarReunion(slug: string, entrada: unknown, userId: stri
     .update({ status: "closed", chosen_start: instante(r, dia, fila), closed_at: new Date().toISOString() })
     .eq("id", e.id);
   if (error) throw error;
+  // Una reunión cerrada ya no espera respuestas: los avisos que seguían pendientes se cancelan.
+  await db().from("notifications").update({ status: "cancelled" }).eq("event_id", e.id).eq("status", "pending");
 }
 
 /** Vuelve a abrir una reunión cerrada: se borra el horario elegido y se puede volver a responder. */
@@ -236,7 +238,8 @@ export async function reabrirReunion(slug: string, entrada: unknown, userId: str
 
 // ---- guardar respuesta ----
 
-export type ResultadoRespuesta = { claveDenegada: boolean; clave: boolean };
+/** `eventId` es solo para el servidor (por ejemplo, para revisar los avisos): no se le manda al navegador. */
+export type ResultadoRespuesta = { claveDenegada: boolean; clave: boolean; eventId: string };
 
 export async function guardarRespuesta(slug: string, entrada: unknown, userId: string | null = null): Promise<ResultadoRespuesta> {
   const parsed = esquemaRespuesta.safeParse(entrada);
@@ -279,5 +282,5 @@ export async function guardarRespuesta(slug: string, entrada: unknown, userId: s
   });
   if (error) throw error;
   const res = data as { is_key: boolean; key_denied: boolean };
-  return { clave: res.is_key, claveDenegada: res.key_denied };
+  return { clave: res.is_key, claveDenegada: res.key_denied, eventId: e.id };
 }

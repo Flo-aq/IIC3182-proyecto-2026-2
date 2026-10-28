@@ -9,6 +9,7 @@ import { BarraSuperior } from "@/components/barra-superior";
 import { NotificarDialog, type Aviso, textoAviso } from "@/components/responder/notificar-dialog";
 import { Button } from "@/components/ui/button";
 import { agregarTag as agregarTagApi, quitarTag as quitarTagApi } from "@/lib/api-cuenta";
+import { pedirAviso, quitarAviso as quitarAvisoApi } from "@/lib/api-avisos";
 import { BOTON } from "@/lib/botones";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useEsPantallaAncha, useOrigen } from "@/lib/cliente";
@@ -142,9 +143,15 @@ export function Perfil({ reunionesIniciales, plantillasIniciales }: { reunionesI
           onAgregarTag={(t) => agregarTag(r, t)}
           onTopeReunion={avisarTopeReunion}
           onAviso={() => setAvisoDe(r.slug)}
-          onQuitarAviso={() => {
-            cambiar(r.slug, (x) => ({ ...x, aviso: null }));
-            toast.success("Aviso quitado");
+          onQuitarAviso={async () => {
+            if (!r.avisoId) return;
+            try {
+              await quitarAvisoApi(r.avisoId);
+              cambiar(r.slug, (x) => ({ ...x, aviso: null, avisoId: null }));
+              toast.success("Aviso quitado");
+            } catch (e) {
+              toast.error((e as Error).message);
+            }
           }}
           onCopiar={() => copiar(r)}
           copiado={copiado === r.slug}
@@ -254,8 +261,10 @@ export function Perfil({ reunionesIniciales, plantillasIniciales }: { reunionesI
           }}
           respondieron={reunionDelAviso.respuestas}
           inicial={null}
-          onGuardar={(a: Aviso) => {
-            cambiar(reunionDelAviso.slug, (x) => ({ ...x, aviso: a }));
+          zona={reunionDelAviso.zona}
+          onGuardar={async (a: Aviso) => {
+            const creado = await pedirAviso(reunionDelAviso.slug, a);
+            cambiar(reunionDelAviso.slug, (x) => ({ ...x, aviso: a, avisoId: creado.id }));
             toast.success("Aviso activado", { description: `Te avisaremos ${textoAviso(a)} a ${a.correo}.` });
           }}
         />

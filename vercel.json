@@ -1,5 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ]",
-  "crons": [{ "path": "/api/cron/limpieza", "schedule": "0 7 * * *" }]
+  "crons": [
+    { "path": "/api/cron/limpieza", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/avisos", "schedule": "0 12 * * *" }
+  ]
 }
