@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { BOTON } from "@/lib/botones";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PASOS } from "@/lib/ayuda";
 
@@ -26,7 +27,7 @@ export function InfoDialog({ open, onOpenChange }: Props) {
             </li>
           ))}
         </ol>
-        <Button className="h-12 rounded-full text-base font-bold" onClick={() => onOpenChange(false)}>
+        <Button variant="outline" className={BOTON.secundario} onClick={() => onOpenChange(false)}>
           Entendido
         </Button>
       </DialogContent>

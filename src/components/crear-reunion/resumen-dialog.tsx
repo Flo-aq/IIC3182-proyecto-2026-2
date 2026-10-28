@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { BOTON } from "@/lib/botones";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Reunion } from "@/lib/reunion";
 import { AreaScroll } from "./area-scroll";
@@ -25,11 +26,11 @@ export function ResumenDialog({ open, onOpenChange, reunion, onCrear }: Props) {
           <ResumenReunion reunion={reunion} />
         </AreaScroll>
         <div className="grid shrink-0 grid-cols-2 gap-2 border-t px-5 pt-3 pb-5">
-          <Button variant="outline" className="h-12 rounded-full text-base font-bold" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" className={BOTON.secundario} onClick={() => onOpenChange(false)}>
             Volver
           </Button>
           <Button
-            className="h-12 rounded-full text-base font-extrabold"
+            className={BOTON.principal}
             onClick={() => {
               onOpenChange(false);
               onCrear();

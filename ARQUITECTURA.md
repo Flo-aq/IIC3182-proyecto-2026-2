@@ -1,56 +1,156 @@
 # WeMeet: arquitectura (monolito)
 
-Versión mejorada de When2Meet, mobile-first. Estilo visual elegido: **Cake** (ver artifact de estilos).
+Versión mejorada de When2Meet, mobile-first. Estilo visual **Cake** (blanco, violeta `#4823ff`, amarillo `#e7ff6e`, gris cálido).
+Los flujos de usuario con sus diagramas están en `flujos-de-usuario.md`; las decisiones de diseño, en `registro-de-decisiones.md`.
+
+## Estado de la implementación
+
+| Parte | Estado |
+|---|---|
+| Interfaz (crear reunión, responder, perfil, plantillas, ayuda) | **Hecha**. Sin base de datos todavía: ninguna reunión existe (todo `/e/…` da 404), las listas del perfil parten vacías y nada se guarda |
+| Cuenta | **Sin conectar**: nadie tiene cuenta, "Sign in" está desactivado y `/perfil` pide iniciar sesión. La interfaz con cuenta (perfil, plantillas, tags) está hecha y espera sus datos |
+| Base de datos y endpoints | **Por construir**; el esquema ya está listo y probado en `supabase/migrations/` |
+| Cerrar la reunión y el `.ics` | Por construir (no tiene pantalla todavía) |
+| Avisos por correo | Pantalla hecha ("Notificarme" y "Avisar / No avisar"); el envío, por construir |
 
 ## Stack
 | Pieza | Elección |
 |---|---|
 | App | Next.js (App Router, TypeScript): páginas y API en un solo proyecto |
-| Deploy | Vercel (plan gratis), un deploy por push al repo |
+| UI | Tailwind v4, shadcn/ui (base-nova), Lucide, react-day-picker, selector de hora de ReUI, sonner |
+| Deploy | Vercel (plan gratis); `main` se despliega, `dev` no (`vercel.json`) |
 | Base de datos | Postgres en Supabase (plan gratis) |
-| Acceso a datos | Desde el servidor (route handlers / server actions) con la librería `postgres` o Drizzle; el navegador nunca habla directo con la DB |
-| Login opcional | Supabase Auth con "Continuar con Google"; sin cuenta se participa con solo un nombre |
-| Estilos | CSS Modules o Tailwind con los tokens de Cake |
+| Acceso a datos | Solo desde el servidor (route handlers) con `postgres` o Drizzle; el navegador nunca habla directo con la base |
+| Cuenta | Supabase Auth con "Continuar con Google". Sin cuenta se participa con solo un nombre |
+| Correo | Resend (avisos), enviados desde un cron de Vercel |
 
 Reglas del enunciado que condicionan esto: URL pública que abre sin instalar ni pedir cuenta, repo visible para la profesora y la ayudante, y el link debe seguir vivo hasta fines de noviembre.
 
+## Qué es una cuenta y qué no
+- **Sin cuenta**: se puede crear una reunión, responderla y pedir un aviso por correo. Al responder basta un nombre.
+- **Escribir el nombre no es una cuenta.** Sirve para responder y para volver a editar la respuesta (escribir el mismo nombre, sin importar mayúsculas, carga esa respuesta). No abre el perfil.
+- **Con cuenta** (Google): perfil con todas tus reuniones (creadas y respondidas), tags, plantillas y avisos.
+- Un nombre no protege la respuesta: cualquiera con el link podría reescribir la de otra persona escribiendo su nombre. Es una decisión de diseño (sin contraseñas); el riesgo se acota con límite de peticiones y con que las respuestas de una reunión ya son visibles para todos los que tienen el link.
+
 ## Modelo de datos
-El SQL completo está en [supabase/migrations/20261026120000_init.sql](supabase/migrations/20261026120000_init.sql). Resumen:
-- `events`: slug, título, **zona horaria**, días candidatos, **hora de inicio y de término**, **tamaño de bloque (10, 15, 20, 30 o 60 min)**, **máximo de integrantes clave (0 a 2)**, deadline, estado (`open` | `closed`) y horario elegido al cerrar. `owner_id` es null si lo creó alguien sin login.
-- `blocked_ranges`: horarios que nadie puede marcar (por ejemplo, almuerzo de 13:00 a 14:00). Valen para un día o para todos.
-- `participants`: nombre, `is_key` (integrante clave), `user_id` opcional y un `token` en cookie para volver a editar sin login. Un trigger impide pasarse del máximo de integrantes clave.
-- `availability`: una fila por bloque, guardado como instante exacto (`timestamptz`), así cada quien lo ve en su zona horaria.
-- `tags`, `event_tags` y `templates` (plantillas guardadas): solo con login.
-- Todas las tablas con RLS activado y sin políticas: solo el servidor (clave service role) lee y escribe.
+El SQL completo y probado está en [supabase/migrations/20261026120000_init.sql](supabase/migrations/20261026120000_init.sql). Resumen:
 
-**Quién queda como integrante clave:** cada persona se declara ("Soy integrante clave") mientras queden cupos, y el creador puede quitar la marca. El nombre "integrante clave" es provisorio.
+| Tabla | Para qué | Datos clave |
+|---|---|---|
+| `events` | La reunión | `slug` (va en el link), `title` (1 a 80), `owner_id` (null si no hay cuenta), `owner_token` (secreto del creador), `timezone`, `days date[]` (pueden pasar de 7), `start_time`, `end_time` (`24:00` vale), `slot_minutes` (10, 15, 20, 30 o 60), `max_key` (0 a 2), `status`, `chosen_start`, `created_at` |
+| `blocked_ranges` | Horarios que nadie puede marcar | `days date[]`, `start_time`, `end_time`: una regla vale para uno o más días |
+| `participants` | Quien respondió | `name` (1 a 40, único por reunión sin distinguir mayúsculas), `is_key`, `user_id` (null sin cuenta), `created_at` ("Respondida el…") |
+| `availability` | Los bloques en que alguien puede | una fila por bloque, como instante exacto (`timestamptz`): cada quien lo ve en su zona |
+| `tags` | Tags de una cuenta | `user_id`, `name` (1 a 24 letras, único por cuenta sin distinguir mayúsculas) |
+| `event_tags` | Tag puesto a una reunión | de la cuenta dueña del tag, a una reunión que creó o respondió |
+| `templates` | Plantillas de una cuenta | `name` (1 a 50, único por cuenta), `slot_minutes`, `start_time`, `end_time`, `max_key`, `blocked jsonb` |
+| `template_tags` | Tags de una plantilla | |
+| `notifications` | Avisos por correo | `email`, `kind` (`count`, `date`, `datetime`), `target_count`, `notify_at`, `status` (`pending`, `sent`, `cancelled`), `cancel_token`, `user_id` (null sin cuenta) |
+| `profile_events` (vista) | La lista del perfil | una fila por reunión de la cuenta: `role` (`creada` o `respondida`), `role_date`, `response_count` |
 
-**Integrante clave** reemplaza a los roles ayudante y profe: es alguien cuyo horario delimita la reunión (hasta 2). Los horarios sugeridos son los bloques en que todos los integrantes clave pueden, ordenados por cuánta gente más puede.
+```mermaid
+erDiagram
+  auth_users ||--o{ events : "crea (owner_id)"
+  auth_users ||--o{ participants : "responde (user_id)"
+  auth_users ||--o{ tags : "tiene"
+  auth_users ||--o{ templates : "guarda"
+  auth_users ||--o{ notifications : "pide (user_id)"
+  events ||--o{ blocked_ranges : "bloquea"
+  events ||--o{ participants : "reciben"
+  events ||--o{ notifications : "avisan"
+  events ||--o{ event_tags : "llevan"
+  participants ||--o{ availability : "marca"
+  tags ||--o{ event_tags : ""
+  tags ||--o{ template_tags : ""
+  templates ||--o{ template_tags : "llevan"
+```
 
-## Páginas (como When2Meet, más el perfil)
-1. **`/`, crear reunión** (título, zona horaria, días, hora de inicio y de término, tamaño de bloque, horarios bloqueados y cuántos integrantes clave). Funciona sin login; con login se puede guardar como plantilla.
-2. **`/e/[slug]`, la página de la reunión.** Todo pasa aquí, sin cambiar de pantalla: elegir rol, marcar bloques, guardar (con confirmación), ver al grupo, copiar el resumen y cerrar la reunión (con confirmación en el mismo lugar). Se ve igual con o sin login; con login se agregan los tags.
-3. **`/perfil`, la vista de perfil.**
-   - Con login: tus reuniones (abiertas y cerradas) y tus tags.
-   - Sin login: invitación a entrar ("Continuar con Google") explicando qué se gana.
+### Reglas que la base hace cumplir (triggers y restricciones)
+| Regla | Dónde |
+|---|---|
+| Máximo de integrantes clave por reunión (`max_key`) | trigger en `participants` |
+| Un nombre por reunión, sin distinguir mayúsculas ni espacios de más | índice único en `participants` |
+| 24 letras por tag, 5 tags por reunión, 5 por plantilla y 30 por cuenta | checks y triggers en `tags`, `event_tags`, `template_tags` |
+| Un tag deja de existir cuando ya no está en ninguna reunión ni plantilla | trigger que borra los huérfanos |
+| Un solo aviso pendiente por correo y reunión, y uno por cuenta y reunión | índices únicos parciales en `notifications` |
+| La forma del aviso (`count` lleva cantidad, `date` y `datetime` llevan fecha) | check en `notifications` |
+| Hora de término posterior a la de inicio; reunión cerrada si y solo si tiene `closed_at` | checks en `events`, `blocked_ranges`, `templates` |
+| Todo cerrado al navegador: RLS activado sin políticas; solo el servidor (service role) accede | todas las tablas; la vista se cierra con `revoke` |
 
-El login no bloquea nada: quien no lo hace puede crear y responder igual.
+Lo que valida la API además (no se puede expresar bien en SQL): que los días de un bloqueo sean días de la reunión, que el horario sea múltiplo del bloque, y que los bloques marcados caigan en un día y una hora de la reunión y no estén bloqueados.
+
+**Se quitó respecto a la primera versión:** la fecha límite (`deadline`), el `token` por participante (la identidad es el nombre) y el campo `day` único de los bloqueos (ahora `days`).
+
+## Páginas
+| Ruta | Qué es | Quién |
+|---|---|---|
+| `/` | Crear reunión: nombre, días, horario, bloque, horarios bloqueados, integrantes clave, zona; con cuenta, también tags y plantillas propias | todos |
+| `/?plantilla=<id>` | Lo mismo, con una plantilla de la cuenta ya aplicada | con cuenta (si no, se ignora) |
+| `/e/[slug]` | La reunión: acceso por nombre, Mi horario, Respuestas, Compartir (celular: pestañas; computador: dos grillas a la vez y Compartir flotante) | todos |
+| `/perfil` | Pestañas Reuniones y Plantillas | solo con cuenta; sin cuenta, pide iniciar sesión |
+| `/how-to`, `/faq` | Ayuda, una página fija, separada por pantalla (`#crear`, `#perfil`…) | todos |
+| `not-found` | Cuando el link no lleva a ninguna parte (por ejemplo, una reunión que no existe) | todos |
+
+## Endpoints
+Todos pasan por el servidor. Los de `/api/me/*` exigen sesión (cookie de Supabase Auth); los demás son públicos. Los errores devuelven `{ error: { code, message } }` con el código HTTP que corresponda (400 validación, 401 sin sesión, 403 sin permiso, 404 no existe, 409 conflicto, 429 muchas peticiones).
+
+### Reuniones (públicos)
+| Método y ruta | Qué hace | Cuerpo / respuesta |
+|---|---|---|
+| `POST /api/events` | Crea la reunión | `{ title, timezone, days[], start, end, slotMinutes, maxKey, blocked: [{ days[], start, end }], tags?[] }` → `201 { slug, ownerToken }`. Guarda `owner_token` en una cookie; con sesión también `owner_id` y los `tags` (solo con sesión) |
+| `GET /api/events/[slug]` | Los datos de la reunión y todas las respuestas | → `{ event, blocked[], participants: [{ name, isKey, slots[] }] }`. `404` si no existe |
+| `PUT /api/events/[slug]/responses` | Guarda (crea o reemplaza) una respuesta por nombre | `{ name, isKey, slots[] }` → `200 { participant }`. `409 key_full` si ya no hay lugar de integrante clave; `400` si algún bloque no existe o está bloqueado. Con sesión, fija `user_id` |
+| `POST /api/events/[slug]/close` | Cierra la reunión y elige el horario | `{ chosenStart }`; exige `owner_token` o ser el dueño. *(Por construir)* |
+| `GET /api/events/[slug]/ics` | Descarga el `.ics` del horario elegido | *(Por construir)* |
+| `POST /api/events/[slug]/notifications` | Pide un aviso por correo | `{ email, kind, targetCount?, notifyAt? }` → `201 { id }`. `409` si ya hay uno pendiente para ese correo. Con sesión, fija `user_id` |
+| `DELETE /api/notifications/[id]` | Quita un aviso (pasa a `cancelled`) | exige ser su dueño (sesión) o llevar el `cancelToken` que va en cada correo (para quien lo pidió sin cuenta) |
+
+### Cuenta (con sesión)
+| Método y ruta | Qué hace | Cuerpo / respuesta |
+|---|---|---|
+| `GET /api/me/events` | La lista del perfil | query: `role=creada\|respondida`, `tags=a,b` (deben estar todos), `sort=date\|name`, `dir=asc\|desc` → `[{ slug, title, role, roleDate, responseCount, tags[], notification: null \| { kind, summary, email } }]` |
+| `POST /api/me/events/[slug]/tags` | Pone un tag a una reunión (lo crea si no existe, sin distinguir mayúsculas) | `{ name }` → `201`. `409 tag_limit_event` (5 por reunión) o `409 tag_limit_account` (30 por cuenta) |
+| `DELETE /api/me/events/[slug]/tags/[name]` | Quita un tag de una reunión (si queda sin uso, desaparece) | `204` |
+| `GET /api/me/tags` | Tus tags con cuántas reuniones tiene cada uno | `[{ name, count }]` |
+| `GET /api/me/templates` | Tus plantillas | `[{ id, name, slotMinutes, start, end, maxKey, blocked[], tags[] }]` |
+| `POST /api/me/templates` | Crea una plantilla | misma forma, sin `id` → `201`. `409 name_taken` si el nombre se repite |
+| `PUT /api/me/templates/[id]` | Reemplaza una plantilla | `200`; `409 name_taken` |
+| `POST /api/me/templates/[id]/duplicate` | La duplica como "… (copia)" | `201` con la nueva |
+| `DELETE /api/me/templates/[id]` | La borra (las reuniones ya creadas no cambian) | `204` |
+
+### Sesión y tareas programadas
+| Método y ruta | Qué hace |
+|---|---|
+| `GET /auth/callback` | Vuelta de Google: Supabase Auth guarda la sesión y redirige a donde estaba el usuario |
+| `POST /auth/signout` | Cierra la sesión |
+| `POST /api/cron/notifications` | Cron de Vercel (cada 5 min, con secreto): envía los avisos `date` y `datetime` cuyo `notify_at` ya pasó, y los `count` cuyas reuniones ya llegaron a la cantidad pedida; marca `sent` |
+
+El aviso `count` también se puede revisar al guardar una respuesta (`PUT …/responses`), para enviarlo apenas se cumple sin esperar al cron.
 
 ## Login
 **Continuar con Google**, usando Supabase Auth. Sin contraseñas ni correos de verificación: un botón, Supabase guarda la sesión. Configuración única: crear un cliente OAuth en Google Cloud y pegar su id y secreto en Supabase.
 
 Se descartó el link al correo: el correo incluido en el plan gratis de Supabase solo envía unos pocos mensajes por hora, y a otros usuarios no les llegaría de forma confiable, lo que rompería la evaluación del otro grupo.
 
-## Endpoints (no son páginas, solo los usa la app)
-- `POST /api/events` crear reunión
-- `POST /api/events/[slug]/availability` guardar disponibilidad
-- `POST /api/events/[slug]/close` cerrar reunión
-- `GET /api/events/[slug]/ics` descarga del `.ics`
+Hoy: `useSesion()` en `src/lib/sesion.ts` siempre devuelve "sin cuenta". Al conectar Supabase Auth, ese hook lee la sesión real y es lo único que cambia en la interfaz. Los datos que la interfaz espera están marcados en el código: `obtenerReunion` (`src/lib/reuniones.ts`), las props `reunionesIniciales` y `plantillasIniciales` del perfil, y `plantillasPropias` y `tagsDeLaCuenta` de crear reunión.
 
-## Las 3 tareas de la Entrega 2
+## Límites y validaciones (iguales en pantalla y en la API)
+| Qué | Límite |
+|---|---|
+| Nombre de la reunión | 1 a 80 letras |
+| Nombre de quien responde | 1 a 40 letras; único en la reunión sin distinguir mayúsculas |
+| Días de la reunión | al menos 1; si son más de 7, se muestran por semanas (lunes a domingo) |
+| Duración del bloque | 10, 15, 20, 30 o 60 minutos |
+| Integrantes clave | 0 a 2 por reunión |
+| Tags | 24 letras; 5 por reunión; 5 por plantilla; 30 por cuenta |
+| Plantillas | nombre de 1 a 50 letras, único por cuenta |
+| Aviso por correo | uno pendiente por correo y reunión; no se edita, se quita y se pide otro |
+
+## Las tareas de las entregas
 1. Crear una reunión con horario, bloques e integrantes clave.
 2. Responder la disponibilidad y verla guardada.
-3. Cerrar la reunión y copiar el resumen.
+3. Ver las respuestas y copiar el resumen para el grupo.
+4. *(Con cuenta)* Encontrar una reunión en el perfil por sus tags.
 
 ## Fuera de la primera entrega
-Notificaciones por email cuando respondan N personas, invitación enviada por correo, tags y perfil completos.
+Cerrar la reunión con invitación al calendario, envío real de avisos por correo, y todo lo que dependa de la base de datos (hoy la interfaz no guarda nada).

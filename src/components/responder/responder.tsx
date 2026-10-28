@@ -2,12 +2,14 @@
 
 import { ChevronLeft, ChevronRight, Hand, Info, PaintBucket, Plus, Share2 } from "lucide-react";
 import Link from "next/link";
-import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { EnlacesAyuda } from "@/components/enlace-ayuda";
 import { Logo } from "@/components/logo";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { BOTON } from "@/lib/botones";
+import { useEsPantallaAncha, useOrigen } from "@/lib/cliente";
 import {
   type PersonaSet,
   type ReunionConRespuestas,
@@ -29,16 +31,6 @@ import { QuienPuede, QuienPuedeVacio } from "./quien-puede";
 const PAD = "pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]";
 const PESTANAS = ["Mi horario", "Respuestas", "Compartir"] as const;
 
-const sinSuscripcion = () => () => {};
-
-/** Desde este ancho (lg) se ven a la vez Mi horario, Respuestas y el panel de Compartir; antes, con pestañas. */
-const ANCHO = "(min-width: 1024px)";
-const suscribirAncho = (aviso: () => void) => {
-  const m = window.matchMedia(ANCHO);
-  m.addEventListener("change", aviso);
-  return () => m.removeEventListener("change", aviso);
-};
-
 function Encabezado({ titulo, pista }: { titulo: string; pista?: string }) {
   return (
     <div className="flex shrink-0 items-baseline justify-between gap-2">
@@ -52,11 +44,11 @@ function Encabezado({ titulo, pista }: { titulo: string; pista?: string }) {
 function NavSemana({ columnas, semana, total, onSemana }: { columnas: Columna[]; semana: number; total: number; onSemana: (s: number) => void }) {
   return (
     <div className="flex shrink-0 items-center justify-between gap-2">
-      <Button type="button" variant="outline" size="icon" className="size-9 rounded-full" aria-label="Semana anterior" disabled={semana === 0} onClick={() => onSemana(semana - 1)}>
+      <Button type="button" variant="outline" size="icon" className={BOTON.icono} aria-label="Semana anterior" disabled={semana === 0} onClick={() => onSemana(semana - 1)}>
         <ChevronLeft />
       </Button>
       <p className="min-w-0 text-center text-[0.8125rem] font-semibold">Semana del {etiquetaRango(columnas)}</p>
-      <Button type="button" variant="outline" size="icon" className="size-9 rounded-full" aria-label="Semana siguiente" disabled={semana >= total - 1} onClick={() => onSemana(semana + 1)}>
+      <Button type="button" variant="outline" size="icon" className={BOTON.icono} aria-label="Semana siguiente" disabled={semana >= total - 1} onClick={() => onSemana(semana + 1)}>
         <ChevronRight />
       </Button>
     </div>
@@ -87,12 +79,9 @@ export function Responder({ datos }: { datos: ReunionConRespuestas }) {
   const cajaCompartir = useRef<HTMLDivElement>(null);
   const panelCompartir = useRef<HTMLElement>(null);
 
-  const escritorio = useSyncExternalStore(
-    suscribirAncho,
-    () => window.matchMedia(ANCHO).matches,
-    () => false,
-  );
-  const origen = useSyncExternalStore(sinSuscripcion, () => window.location.origin, () => "https://wemeet.app");
+  // Desde lg se ven a la vez Mi horario y Respuestas, con Compartir flotante; antes, con pestañas.
+  const escritorio = useEsPantallaAncha();
+  const origen = useOrigen();
   const enlace = `${origen}/e/${slug}`;
 
   const bloqueados = useMemo(() => mapaBloqueados(r), [r]);
@@ -196,7 +185,7 @@ export function Responder({ datos }: { datos: ReunionConRespuestas }) {
       <p className="mb-1.5 text-center text-xs text-muted-foreground">
         {marcados} {marcados === 1 ? "bloque" : "bloques"} de {r.bloqueMin} min · {textoHoras}
       </p>
-      <Button className="h-11 w-full rounded-full text-base font-extrabold" onClick={guardar}>
+      <Button className={`${BOTON.principal} w-full`} disabled={marcados === 0 && guardadas === null} onClick={guardar}>
         {guardadas === null ? "Guardar mis horarios" : sinCambios ? "Guardado ✓" : "Guardar cambios"}
       </Button>
     </>
@@ -247,7 +236,7 @@ export function Responder({ datos }: { datos: ReunionConRespuestas }) {
             <Button
               type="button"
               variant="outline"
-              className="h-9 gap-1.5 rounded-full px-3.5 text-[0.8125rem] font-bold"
+              className={BOTON.compacto}
               aria-expanded={panelAbierto}
               aria-controls="panel-compartir"
               onClick={() => setPanelAbierto((a) => !a)}
@@ -334,7 +323,7 @@ export function Responder({ datos }: { datos: ReunionConRespuestas }) {
                 </div>
               )}
               {listo && desbordaMia && !escritorio && (
-                <Button type="button" variant="outline" className="absolute right-3 bottom-3 z-10 h-9 gap-1.5 rounded-full bg-background px-3.5 text-[0.8125rem] font-bold shadow-md" aria-pressed={pintar} onClick={() => setPintar((p) => !p)}>
+                <Button type="button" variant="outline" className={`${BOTON.compacto} absolute right-3 bottom-3 z-10 bg-background shadow-md`} aria-pressed={pintar} onClick={() => setPintar((p) => !p)}>
                   {pintar ? <Hand /> : <PaintBucket />}
                   {pintar ? "Mover" : "Rellenar"}
                 </Button>

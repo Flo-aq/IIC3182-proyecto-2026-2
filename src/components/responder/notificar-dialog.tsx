@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 
 import { HoraField } from "@/components/crear-reunion/hora-field";
 import { Button } from "@/components/ui/button";
+import { BOTON } from "@/lib/botones";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { aIso, desdeIso, etiquetaDia } from "@/lib/reunion";
@@ -175,10 +176,10 @@ export function NotificarDialog({ open, onOpenChange, respondieron, inicial, onG
             {mensaje(errores.correo)}
           </div>
 
-          <Button type="submit" className="h-12 rounded-full text-base font-extrabold">
+          <Button type="submit" className={BOTON.principal}>
             Activar aviso
           </Button>
-          <Button type="button" variant="ghost" className="h-10 rounded-full text-sm font-bold" onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="ghost" className={BOTON.cancelar} onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
           <p className="text-center text-xs text-muted-foreground">Versión de prueba: todavía no se envían correos.</p>

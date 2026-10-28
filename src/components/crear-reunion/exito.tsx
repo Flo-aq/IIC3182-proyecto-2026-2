@@ -4,6 +4,7 @@ import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { BOTON } from "@/lib/botones";
 import { type Reunion, resumenBloques, resumenDias, textoHorario, zonaCorta } from "@/lib/reunion";
 import { resumenBloqueos } from "./resumen";
 
@@ -41,7 +42,7 @@ export function Exito({ codigo, reunion: r, onOtra }: Props) {
       <p className="text-muted-foreground">Comparte este link. Quien lo abra puede responder sin cuenta.</p>
       <div className="flex items-center gap-2 rounded-full border bg-muted py-1.5 pr-1.5 pl-5">
         <code className="min-w-0 flex-1 truncate font-semibold">{enlace}</code>
-        <Button className="h-11 gap-1.5 rounded-full px-5 font-bold" onClick={copiar}>
+        <Button className="h-11 gap-1.5 rounded-full px-5 font-extrabold" onClick={copiar}>
           {copiado ? <Check /> : <Copy />}
           {copiado ? "Copiado" : "Copiar"}
         </Button>
@@ -50,11 +51,11 @@ export function Exito({ codigo, reunion: r, onOtra }: Props) {
         {filas.map(([k, v]) => (
           <li key={k} className="flex justify-between gap-3 border-b pb-2">
             <span className="text-muted-foreground">{k}</span>
-            <b className="text-right font-semibold">{v}</b>
+            <b className="min-w-0 text-right font-semibold [overflow-wrap:anywhere]">{v}</b>
           </li>
         ))}
       </ul>
-      <Button variant="outline" className="h-12 rounded-full text-base font-bold" onClick={onOtra}>
+      <Button variant="outline" className={BOTON.secundario} onClick={onOtra}>
         Crear otra reunión
       </Button>
       <p className="text-xs text-muted-foreground">

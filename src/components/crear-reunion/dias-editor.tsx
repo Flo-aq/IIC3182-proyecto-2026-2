@@ -4,6 +4,7 @@ import { BrushCleaning } from "lucide-react";
 import { es } from "react-day-picker/locale";
 
 import { Button } from "@/components/ui/button";
+import { BOTON } from "@/lib/botones";
 import { Calendar } from "@/components/ui/calendar";
 import { aIso, desdeIso, textoCantidadDias } from "@/lib/reunion";
 
@@ -38,7 +39,7 @@ export function DiasEditor({ dias, manana, onChange }: Props) {
         <Button
           type="button"
           variant="ghost"
-          className="h-11 shrink-0 gap-1.5 rounded-full px-3 font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"
+          className={`${BOTON.texto} shrink-0`}
           disabled={!dias.length}
           onClick={() => onChange([])}
         >

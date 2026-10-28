@@ -172,6 +172,10 @@ export function textoResumen(r: Reunion, personas: PersonaSet[], enlace: string)
   if (r.claves) {
     texto += `Integrantes clave: ${claves.length} de ${r.claves} ${plural(claves.length, "ha respondido", "han respondido")}${claves.length ? ` (${claves.map((p) => p.nombre).join(", ")})` : ""}.\n`;
   }
+  if (!total) return `${r.titulo}
+Todavía no responde nadie.
+
+Responde aquí: ${enlace}`;
   const exigir = claves.length > 0;
   let tramos = mejoresTramos(r, personas, exigir);
   let titulo = exigir ? "Mejores horarios con todos los integrantes clave" : "Mejores horarios";

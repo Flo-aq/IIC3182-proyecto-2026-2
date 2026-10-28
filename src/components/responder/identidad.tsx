@@ -4,6 +4,7 @@ import { LogIn, User } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { BOTON } from "@/lib/botones";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PuntoClave } from "./punto-clave";
@@ -91,7 +92,7 @@ export function Acceso({ nombre, onNombre, clave, onClave, onContinuar, hayClave
               </span>
             </label>
           )}
-          <Button type="submit" className="h-12 rounded-full text-base font-extrabold" disabled={!nombre.trim()}>
+          <Button type="submit" className={BOTON.principal} disabled={!nombre.trim()}>
             {yaRespondio ? "Editar mi respuesta" : "Continuar"}
           </Button>
         </form>
@@ -102,7 +103,7 @@ export function Acceso({ nombre, onNombre, clave, onClave, onContinuar, hayClave
             o
             <span aria-hidden="true" className="h-px flex-1 bg-border" />
           </div>
-          <Button type="button" variant="outline" disabled className="h-12 gap-2 rounded-full px-6 text-base font-bold" title="Próximamente: iniciar sesión con tu cuenta">
+          <Button type="button" variant="outline" disabled className={`${BOTON.secundario} px-6`} title="Próximamente: iniciar sesión con tu cuenta">
             <LogIn />
             Iniciar sesión
           </Button>
@@ -142,7 +143,7 @@ export function MenuUsuario({ nombre, clave, editando, onCambiar }: MenuProps) {
         <Button
           type="button"
           variant="outline"
-          className="h-10 rounded-full text-sm font-bold"
+          className={BOTON.compacto}
           onClick={() => {
             setAbierto(false);
             onCambiar();

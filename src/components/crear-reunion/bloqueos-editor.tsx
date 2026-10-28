@@ -5,6 +5,7 @@ import { useState } from "react";
 import { es } from "react-day-picker/locale";
 
 import { Button } from "@/components/ui/button";
+import { BOTON } from "@/lib/botones";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -25,6 +26,8 @@ type Props = {
   /** Ids de las reglas con problemas, para marcarlas. */
   reglasInvalidas?: Set<string>;
   onChange: (bloqueos: Bloqueo[]) => void;
+  /** Sin elegir días por regla: cada horario vale para todos los días de la reunión (así son las reglas de una plantilla). */
+  sinDias?: boolean;
 };
 
 /** Elige los días de una regla en el calendario normal, donde solo se pueden tocar los días marcados en "Días". */
@@ -85,12 +88,12 @@ function DiasDeLaRegla({
           <Button
             type="button"
             variant="ghost"
-            className="h-9 rounded-full px-3 text-[0.8125rem] font-semibold text-muted-foreground"
+            className={BOTON.texto}
             onClick={() => onChange(ordenados)}
           >
             Todos los días
           </Button>
-          <Button type="button" variant="secondary" className="h-9 rounded-full px-4 text-[0.8125rem]" onClick={() => setAbierto(false)}>
+          <Button type="button" className={BOTON.confirmar} onClick={() => setAbierto(false)}>
             Listo
           </Button>
         </div>
@@ -99,7 +102,7 @@ function DiasDeLaRegla({
   );
 }
 
-export function BloqueosEditor({ reunion, nuevoId, reglasInvalidas, onChange }: Props) {
+export function BloqueosEditor({ reunion, nuevoId, reglasInvalidas, onChange, sinDias = false }: Props) {
   const { bloqueos, dias } = reunion;
 
   const cambiar = (id: string, cambio: Partial<Bloqueo>) =>
@@ -119,7 +122,7 @@ export function BloqueosEditor({ reunion, nuevoId, reglasInvalidas, onChange }: 
               <Button
                 type="button"
                 variant="ghost"
-                className="h-8 gap-1.5 rounded-full px-2.5 text-[0.8125rem] font-normal text-muted-foreground"
+                className={BOTON.texto}
                 aria-label={`Duplicar la regla ${i + 1}`}
                 onClick={() => onChange(duplicarBloqueo(reunion, i, nuevoId))}
               >
@@ -129,7 +132,7 @@ export function BloqueosEditor({ reunion, nuevoId, reglasInvalidas, onChange }: 
               <Button
                 type="button"
                 variant="ghost"
-                className="h-8 gap-1.5 rounded-full px-2.5 text-[0.8125rem] font-normal text-destructive hover:bg-destructive/10 hover:text-destructive"
+                className={BOTON.peligro}
                 aria-label={`Quitar la regla ${i + 1}`}
                 onClick={() => onChange(bloqueos.filter((x) => x.id !== b.id))}
               >
@@ -138,13 +141,15 @@ export function BloqueosEditor({ reunion, nuevoId, reglasInvalidas, onChange }: 
               </Button>
             </div>
           </div>
-          <DiasDeLaRegla
-            regla={b}
-            dias={dias}
-            etiqueta={`Días de la regla ${i + 1}`}
-            invalida={!!reglasInvalidas?.has(b.id)}
-            onChange={(d) => cambiar(b.id, { dias: d })}
-          />
+          {!sinDias && (
+            <DiasDeLaRegla
+              regla={b}
+              dias={dias}
+              etiqueta={`Días de la regla ${i + 1}`}
+              invalida={!!reglasInvalidas?.has(b.id)}
+              onChange={(d) => cambiar(b.id, { dias: d })}
+            />
+          )}
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5">
             <HoraField
               value={b.desde}
@@ -169,17 +174,18 @@ export function BloqueosEditor({ reunion, nuevoId, reglasInvalidas, onChange }: 
       <Button
         type="button"
         variant="ghost"
-        className="h-11 justify-start gap-1.5 px-1 font-semibold text-primary"
+        className={`${BOTON.texto} justify-start`}
         onClick={() =>
           onChange([
             ...bloqueos,
-            { id: nuevoId(), dias: [...dias].sort(), desde: POR_DEFECTO.bloqueoDesde, hasta: POR_DEFECTO.bloqueoHasta },
+            { id: nuevoId(), dias: sinDias ? [] : [...dias].sort(), desde: POR_DEFECTO.bloqueoDesde, hasta: POR_DEFECTO.bloqueoHasta },
           ])
         }
       >
         <Plus />
         Bloquear un horario
       </Button>
+      {sinDias && <p className="text-xs text-muted-foreground">Cada horario vale para todos los días de la reunión.</p>}
     </div>
   );
 }

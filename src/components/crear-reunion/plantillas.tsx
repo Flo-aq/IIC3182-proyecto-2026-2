@@ -53,7 +53,7 @@ export function Plantillas({ plantillas, elegida, onElegir }: Props) {
         role="group"
         aria-label="Plantillas"
         style={{ "--fl": medidas.izq ? "28px" : "0px", "--fr": medidas.der ? "44px" : "0px" } as CSSProperties}
-        className="flex cursor-grab gap-1.5 overflow-x-auto py-0.5 [-webkit-mask-image:linear-gradient(to_right,transparent_0,#000_var(--fl),#000_calc(100%-var(--fr)),transparent_100%)] [mask-image:linear-gradient(to_right,transparent_0,#000_var(--fl),#000_calc(100%-var(--fr)),transparent_100%)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex cursor-grab gap-1.5 overflow-x-auto pt-0.5 pb-2 [-webkit-mask-image:linear-gradient(to_right,transparent_0,#000_var(--fl),#000_calc(100%-var(--fr)),transparent_100%)] [mask-image:linear-gradient(to_right,transparent_0,#000_var(--fl),#000_calc(100%-var(--fr)),transparent_100%)] "
         onPointerDown={(e) => {
           const el = lista.current;
           if (e.pointerType !== "mouse" || !el) return;
@@ -84,25 +84,21 @@ export function Plantillas({ plantillas, elegida, onElegir }: Props) {
             variant="outline"
             aria-pressed={elegida === i}
             title={p.detalle}
-            className={`h-9 shrink-0 rounded-full px-3 text-[0.8125rem] ${
-              elegida === i ? "border-primary bg-accent font-semibold text-accent-foreground" : ""
+            className={`h-9 max-w-[16rem] shrink-0 rounded-full px-3 text-[0.8125rem] ${
+              // Las plantillas de la cuenta ("id" las distingue de las de WeMeet) van en amarillo.
+              "id" in p
+                ? elegida === i
+                  ? "border-primary bg-lime font-extrabold ring-1 ring-primary hover:bg-lime"
+                  : "border-lime bg-lime text-foreground hover:bg-lime/80"
+                : elegida === i
+                  ? "border-primary bg-accent font-semibold text-accent-foreground"
+                  : ""
             }`}
             onClick={() => onElegir(i)}
           >
-            {p.nombre}
+            <span className="truncate">{p.nombre}</span>
           </Button>
         ))}
-      </div>
-      <div
-        aria-hidden="true"
-        className={`relative mx-0.5 mt-1.5 h-[3px] rounded-full bg-secondary transition-opacity ${
-          medidas.ancho < 100 ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        <i
-          className="absolute inset-y-0 rounded-full bg-primary"
-          style={{ width: `${medidas.ancho}%`, left: `${medidas.pos}%` }}
-        />
       </div>
     </div>
   );

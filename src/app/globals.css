@@ -34,6 +34,8 @@
   --pista: #f5f2ee;
   --pista-bloqueo: #ebe7e1;
   --panel: #f5f3ff;
+  /* El color con que la ayuda marca partes de las fotos: distinto del violeta de la aplicación, para que no se confunda con ella. */
+  --marca: #e8590c;
   --chart-1: #4823ff;
   --chart-2: #7e78ff;
   --chart-3: #d9d2ff;
@@ -95,6 +97,7 @@
   --pista: #2a2723;
   --pista-bloqueo: #34302b;
   --panel: #231f33;
+  --marca: #ff8a4c;
   --chart-1: #a99bff;
   --chart-2: #7e78ff;
   --chart-3: #d9d2ff;
@@ -145,6 +148,7 @@
   --color-pista: var(--pista);
   --color-pista-bloqueo: var(--pista-bloqueo);
   --color-panel: var(--panel);
+  --color-marca: var(--marca);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -201,5 +205,43 @@
     /* Bajo 320 px la pantalla deja de comprimirse y aparece scroll horizontal. */
     min-width: 320px;
     letter-spacing: var(--tracking-normal);
+  }
+}
+
+/*
+ * La barra de desplazamiento de WeMeet: una línea fina y redonda, del gris de la marca, como la del resto de la aplicación
+ * (ver AreaScroll). `scroll-grueso` la hace más ancha y le pone riel donde tiene que notarse, como en las grillas de horarios.
+ */
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--muted-foreground) transparent;
+  }
+  .scroll-grueso {
+    scrollbar-width: auto;
+    scrollbar-color: var(--muted-foreground) var(--secondary);
+  }
+}
+
+/* Safari antiguo no entiende scrollbar-width ni scrollbar-color: ahí se dibuja la misma barra a mano. */
+@supports not (scrollbar-width: thin) {
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scroll-grueso::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scroll-grueso::-webkit-scrollbar-track {
+    background: var(--secondary);
+    border-radius: 9999px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--muted-foreground);
+    border-radius: 9999px;
   }
 }

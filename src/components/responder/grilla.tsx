@@ -187,7 +187,7 @@ export function Grilla({ reunion: r, columnas, bloqueados, modo, mias, onCambiar
   }
 
   return (
-    <div ref={caja} className="h-full overflow-auto [container-type:inline-size] [scrollbar-width:thin]">
+    <div ref={caja} className="scroll-grueso h-full overflow-auto [container-type:inline-size]">
       <div
         className="grid min-h-full select-none"
         style={{

@@ -1,5 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { BOTON } from "@/lib/botones";
 import { type Reunion, resumenDias, textoDiasRegla, textoHorario, zonaCorta } from "@/lib/reunion";
 import type { Persona } from "@/lib/respuestas";
 
@@ -56,7 +57,7 @@ export function DetallesDialog({ open, onOpenChange, reunion: r, personas }: Pro
             </dd>
           </div>
         </dl>
-        <Button className="h-12 rounded-full text-base font-bold" onClick={() => onOpenChange(false)}>
+        <Button variant="outline" className={BOTON.secundario} onClick={() => onOpenChange(false)}>
           Entendido
         </Button>
       </DialogContent>

@@ -1,39 +1,36 @@
 "use client";
 
-import { Info, Minus, Pencil, Plus, TriangleAlert } from "lucide-react";
+import { Info, Pencil, TriangleAlert } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
+import { BOTON } from "@/lib/botones";
 import { EnlacesAyuda } from "@/components/enlace-ayuda";
 import { Logo } from "@/components/logo";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useSesion } from "@/lib/sesion";
+import { BotonCuenta } from "@/components/boton-cuenta";
+import type { PlantillaDeCuenta } from "@/lib/plantillas";
 import {
-  FIN_DEL_DIA,
-  OPCIONES_BLOQUE,
   PLANTILLAS,
   type Problema,
   POR_DEFECTO,
+  type Plantilla,
   type Reunion,
   aplicarPlantilla,
-  esTodoElDia,
   mananaDe,
   podarBloqueos,
   problemas,
   proximosHabiles,
-  resumenBloques,
-  sumarMinutos,
   textoCantidadDias,
-  textoHorario,
   zonaCorta,
 } from "@/lib/reunion";
-import { BloqueosEditor } from "./bloqueos-editor";
 import { DiasEditor } from "./dias-editor";
+import { Etiquetas } from "./etiquetas";
 import { Exito } from "./exito";
-import { HoraField } from "./hora-field";
+import { FilasAcordeon, Obligatorio, useFilasConfiguracion } from "./filas-configuracion";
 import { InfoDialog } from "./info-dialog";
 import { AreaScroll } from "./area-scroll";
 import { Plantillas } from "./plantillas";
@@ -74,13 +71,18 @@ function avisar(ps: Problema[]) {
   });
 }
 
-const Obligatorio = () => (
-  <span aria-hidden="true" className="ml-0.5 font-extrabold text-destructive">
-    *
-  </span>
-);
+type Props = {
+  /** Las plantillas de la cuenta; vienen de GET /api/me/templates y solo existen con sesión. */
+  plantillasPropias?: PlantillaDeCuenta[];
+  /** Todos los tags de la cuenta, para elegirlos con un toque; vienen de GET /api/me/tags. */
+  tagsDeLaCuenta?: string[];
+};
 
-export function CrearReunion() {
+export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Props) {
+  const { conCuenta } = useSesion();
+  const propias = plantillasPropias;
+  // Primero las propias (solo se ofrecen con cuenta) y después las de WeMeet.
+  const plantillasDisponibles: (Plantilla & { tags?: string[] })[] = conCuenta ? [...propias, ...PLANTILLAS] : PLANTILLAS;
   const [r, setR] = useState<Reunion>(INICIAL);
   const [hoy, setHoy] = useState<Date | null>(null);
   const [abierto, setAbierto] = useState<string | null>(null);
@@ -90,10 +92,10 @@ export function CrearReunion() {
   const [creada, setCreada] = useState<{ codigo: string; reunion: Reunion } | null>(null);
   const [info, setInfo] = useState(false);
   const [verResumen, setVerResumen] = useState(false);
+  /** Los tags de la reunión: solo los puede poner quien tiene una cuenta. */
+  const [etiquetas, setEtiquetas] = useState<string[]>([]);
   const contador = useRef(0);
-  const horarioPrevio = useRef<{ desde: string; hasta: string }>({ desde: POR_DEFECTO.desde, hasta: POR_DEFECTO.hasta });
   const idPlantilla = useId();
-  const idTodoElDia = useId();
 
   // La fecha de hoy y la zona del dispositivo solo existen en el navegador: se leen al montar.
   useEffect(() => {
@@ -101,7 +103,22 @@ export function CrearReunion() {
     const zona = Intl.DateTimeFormat().resolvedOptions().timeZone;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setHoy(ahora);
-    setR((prev) => ({ ...prev, dias: proximosHabiles(ahora, 5), zona: zona || prev.zona }));
+    // Si se llega desde "Usar" en el perfil (/?plantilla=u1), la reunión parte con esa plantilla ya aplicada.
+    // Las plantillas propias son de la cuenta: sin ellas, el parámetro no encuentra nada y se ignora.
+    const id = new URLSearchParams(window.location.search).get("plantilla");
+    const disponibles: (Plantilla & { tags?: string[] })[] = [...plantillasPropias, ...PLANTILLAS];
+    const elegida = id ? disponibles.findIndex((p) => "id" in p && p.id === id) : -1;
+    if (elegida >= 0) {
+      setUsarPlantilla(true);
+      setPlantilla(elegida);
+      setEtiquetas(disponibles[elegida].tags ?? []);
+    }
+    setR((prev) => {
+      const base = { ...prev, dias: proximosHabiles(ahora, 5), zona: zona || prev.zona };
+      return elegida >= 0 ? aplicarPlantilla(base, disponibles[elegida], () => `b${++contador.current}`) : base;
+    });
+    // Solo al montar: la fecha de hoy, la zona y la plantilla del link se leen una vez.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Mientras el aviso sigue a la vista, se actualiza con lo que todavía falta; cuando ya no falta nada, se cierra solo.
@@ -117,6 +134,14 @@ export function CrearReunion() {
   const nuevoId = () => `b${++contador.current}`;
   const cambiar = (parcial: Partial<Reunion>) => setR((prev) => ({ ...prev, ...parcial }));
 
+  // Después del primer intento de crear, los campos con problemas quedan marcados hasta que se corrijan.
+  const pendientes = intento ? problemas(r) : [];
+  const camposMalos = new Set<string>(pendientes.map((p) => p.campo));
+  const reglasMalas = new Set(pendientes.flatMap((p) => (p.regla ? [p.regla] : [])));
+
+  // Horario, duración del bloque, horarios bloqueados e integrantes clave: las mismas filas que al editar una plantilla.
+  const filasConfig = useFilasConfiguracion({ r, cambiar, nuevoId, reglasMalas });
+
   if (creada) {
     return (
       <Exito
@@ -128,27 +153,13 @@ export function CrearReunion() {
           setR((prev) => ({ ...INICIAL, dias: prev.dias, zona: prev.zona }));
           setPlantilla(-1);
           setUsarPlantilla(false);
+          setEtiquetas([]);
         }}
       />
     );
   }
 
-  const todoElDia = esTodoElDia(r);
-  const cambiarTodoElDia = (activo: boolean) => {
-    if (activo) {
-      horarioPrevio.current = { desde: r.desde, hasta: r.hasta };
-      cambiar({ desde: "00:00", hasta: FIN_DEL_DIA });
-    } else {
-      cambiar(horarioPrevio.current);
-    }
-  };
-
   const manana = hoy ? mananaDe(hoy) : null;
-
-  // Después del primer intento de crear, los campos con problemas quedan marcados hasta que se corrijan.
-  const pendientes = intento ? problemas(r) : [];
-  const camposMalos = new Set<string>(pendientes.map((p) => p.campo));
-  const reglasMalas = new Set(pendientes.flatMap((p) => (p.regla ? [p.regla] : [])));
 
   const enfocar = (campo: Problema["campo"]) => {
     if (campo === "nombre") {
@@ -189,120 +200,7 @@ export function CrearReunion() {
         />
       ) : null,
     },
-    {
-      id: "horario",
-      etiqueta: "Horario",
-      obligatorio: true,
-      resumen: textoHorario(r),
-      contenido: (
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-3">
-            <label htmlFor={idTodoElDia} className="text-sm font-semibold">
-              Todo el día
-            </label>
-            <Switch id={idTodoElDia} checked={todoElDia} onCheckedChange={cambiarTodoElDia} />
-          </div>
-          {!todoElDia && (
-            <div className="grid grid-cols-2 gap-3 border-t pt-3">
-              <div className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold text-muted-foreground">Desde</span>
-                <HoraField
-                  value={r.desde}
-                  onChange={(desde) => cambiar({ desde })}
-                  porDefecto={POR_DEFECTO.desde}
-                  max={sumarMinutos(r.hasta, -5)}
-                  label="Hora de inicio"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold text-muted-foreground">Hasta</span>
-                <HoraField
-                  value={r.hasta}
-                  onChange={(hasta) => cambiar({ hasta })}
-                  porDefecto={POR_DEFECTO.hasta}
-                  min={sumarMinutos(r.desde, 5)}
-                  label="Hora de término"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      ),
-    },
-    {
-      id: "bloque",
-      etiqueta: "Cada bloque dura",
-      obligatorio: true,
-      resumen: `${r.bloqueMin} min`,
-      contenido: (
-        <div className="flex flex-col gap-2">
-          <ToggleGroup
-            value={[String(r.bloqueMin)]}
-            onValueChange={(v) => v[0] && cambiar({ bloqueMin: Number(v[0]) })}
-            aria-label="Duración de cada bloque en minutos"
-            className="w-full gap-0.5 rounded-3xl bg-muted p-1"
-          >
-            {OPCIONES_BLOQUE.map((m) => (
-              <ToggleGroupItem
-                key={m}
-                value={String(m)}
-                aria-label={`${m} minutos`}
-                className="h-14 flex-1 flex-col gap-0.5 rounded-[1.25rem] leading-none aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:shadow-md"
-              >
-                <span className="text-lg font-bold">{m}</span>
-                <span aria-hidden="true" className="text-[0.7rem] font-normal opacity-80">
-                  min
-                </span>
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-          <p className="text-sm text-muted-foreground">{resumenBloques(r)}</p>
-        </div>
-      ),
-    },
-    {
-      id: "bloqueos",
-      etiqueta: "Bloquear horarios",
-      obligatorio: false,
-      resumen: r.bloqueos.length ? (r.bloqueos.length === 1 ? "1 regla" : `${r.bloqueos.length} reglas`) : "Ninguno",
-      contenido: <BloqueosEditor reunion={r} nuevoId={nuevoId} reglasInvalidas={reglasMalas} onChange={(bloqueos) => cambiar({ bloqueos })} />,
-    },
-    {
-      id: "claves",
-      etiqueta: "Integrantes clave",
-      obligatorio: false,
-      resumen: r.claves ? String(r.claves) : "Ninguno",
-      contenido: (
-        <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex items-center gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              className="size-12 rounded-full"
-              aria-label="Uno menos"
-              disabled={r.claves <= 0}
-              onClick={() => cambiar({ claves: r.claves - 1 })}
-            >
-              <Minus />
-            </Button>
-            <output className="min-w-14 text-center font-heading text-2xl font-extrabold">{r.claves}</output>
-            <Button
-              type="button"
-              variant="outline"
-              className="size-12 rounded-full"
-              aria-label="Uno más"
-              disabled={r.claves >= 2}
-              onClick={() => cambiar({ claves: r.claves + 1 })}
-            >
-              <Plus />
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Su horario delimita la reunión: solo se sugieren bloques en que ellos pueden.
-          </p>
-        </div>
-      ),
-    },
+    ...filasConfig,
     {
       id: "zona",
       etiqueta: "Zona horaria",
@@ -315,6 +213,18 @@ export function CrearReunion() {
         </div>
       ),
     },
+    // Los tags son de la cuenta: sin cuenta no se ofrecen.
+    ...(conCuenta
+      ? [
+          {
+            id: "etiquetas",
+            etiqueta: "Tags",
+            obligatorio: false,
+            resumen: etiquetas.length ? etiquetas.join(", ") : "Ninguno",
+            contenido: <Etiquetas elegidos={etiquetas} onChange={setEtiquetas} deLaCuenta={tagsDeLaCuenta} />,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -330,15 +240,7 @@ export function CrearReunion() {
         </span>
         <div className="flex items-center gap-1">
           <EnlacesAyuda />
-          <Button
-            type="button"
-            variant="outline"
-            className="h-9 rounded-full border-foreground px-3.5 font-bold"
-            disabled
-            title="Próximamente: iniciar sesión con Google"
-          >
-            Sign in
-          </Button>
+          <BotonCuenta />
         </div>
       </header>
       </div>
@@ -369,9 +271,17 @@ export function CrearReunion() {
       <main className={`flex flex-col gap-3 pt-3 pb-2 ${PAD}`}>
         <div className="flex flex-col gap-2 border-y py-2">
           <div className="flex items-center justify-between gap-3">
-            <label htmlFor={idPlantilla} className="text-[0.95rem] font-semibold">
-              Usar plantilla
-            </label>
+            <div className="flex min-w-0 items-center gap-2">
+              <label htmlFor={idPlantilla} className="text-[0.95rem] font-semibold">
+                Usar plantilla
+              </label>
+              {/* Las plantillas en amarillo son las de la cuenta. */}
+              {conCuenta && usarPlantilla && propias.length > 0 && (
+                <span title="Las plantillas en amarillo son tuyas" className="rounded-full bg-lime px-2 py-0.5 text-[0.6875rem] font-bold">
+                  Tuyas
+                </span>
+              )}
+            </div>
             <Switch
               id={idPlantilla}
               checked={usarPlantilla}
@@ -383,11 +293,14 @@ export function CrearReunion() {
           </div>
           {usarPlantilla && (
             <Plantillas
-              plantillas={PLANTILLAS}
+              plantillas={plantillasDisponibles}
               elegida={plantilla}
               onElegir={(i) => {
                 setPlantilla(i);
-                setR((prev) => aplicarPlantilla(prev, PLANTILLAS[i], nuevoId));
+                const elegida = plantillasDisponibles[i];
+                setR((prev) => aplicarPlantilla(prev, elegida, nuevoId));
+                // Las plantillas propias traen sus tags; las de WeMeet no cambian los que ya elegiste.
+                if (elegida.tags) setEtiquetas(elegida.tags);
               }}
             />
           )}
@@ -425,36 +338,7 @@ export function CrearReunion() {
           </div>
         </div>
 
-        <Accordion
-          value={abierto ? [abierto] : []}
-          onValueChange={(v) => setAbierto((v[0] as string | undefined) ?? null)}
-          className="overflow-clip rounded-2xl border bg-muted"
-        >
-          {filas.map((f) => {
-            const malo = camposMalos.has(f.id);
-            return (
-            <AccordionItem key={f.id} value={f.id} data-fila={f.id} className={malo ? "bg-destructive/5" : ""}>
-              <AccordionTrigger
-                headerClassName={abierto === f.id ? "sticky top-0 z-10 bg-muted" : ""}
-                className="min-h-13 items-center rounded-none px-3.5 py-3 hover:no-underline aria-expanded:border-b-border">
-                <span className={`flex shrink-0 items-center gap-1.5 text-[0.95rem] font-semibold ${malo ? "text-destructive" : ""}`}>
-                  <span>
-                    {f.etiqueta}
-                    {f.obligatorio && <Obligatorio />}
-                  </span>
-                  {malo && <TriangleAlert className="size-4" aria-hidden="true" />}
-                </span>
-                <span
-                  className={`min-w-0 flex-1 truncate pl-3 text-right text-sm font-normal ${malo ? "text-destructive" : "text-muted-foreground"}`}
-                >
-                  {f.resumen}
-                </span>
-              </AccordionTrigger>
-              <AccordionContent className="bg-background px-3.5 pt-3.5 pb-3.5">{f.contenido}</AccordionContent>
-            </AccordionItem>
-            );
-          })}
-        </Accordion>
+        <FilasAcordeon filas={filas} abierto={abierto} onAbierto={setAbierto} malos={camposMalos} />
       </main>
       </AreaScroll>
 
@@ -462,13 +346,13 @@ export function CrearReunion() {
         <Button
           type="button"
           variant="outline"
-          className="mb-2 h-11 w-full rounded-full text-base font-bold lg:hidden"
+          className={`${BOTON.secundario} mb-2 w-full lg:hidden`}
           aria-haspopup="dialog"
           onClick={() => setVerResumen(true)}
         >
           Ver resumen
         </Button>
-        <Button className="h-14 w-full rounded-full text-[1.0625rem] font-extrabold" onClick={crear}>
+        <Button className={`${BOTON.heroe} w-full`} onClick={crear}>
           Crear reunión
         </Button>
       </div>

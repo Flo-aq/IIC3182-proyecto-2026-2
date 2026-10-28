@@ -16,12 +16,19 @@ export function Leyenda({ personas }: { personas: PersonaSet[] }) {
     </div>
   );
 
+  // Mientras nadie responde no hay nada que medir: se avisa en vez de mostrar escalas de "0 a 0".
+  if (!personas.length) {
+    return <div className="mt-1 mb-2 shrink-0 rounded-2xl border bg-muted/40 px-3.5 py-3 text-xs text-muted-foreground">Todavía no responde nadie. Los bloques se irán coloreando con las respuestas.</div>;
+  }
+
   return (
     <div className="mt-1 mb-2 flex shrink-0 flex-col gap-2.5 rounded-2xl border bg-muted/40 px-3.5 py-3 text-xs">
-      <div className="flex items-center justify-between gap-3">
-        <b className="text-[0.8125rem] font-semibold">Pueden</b>
-        {escala(gris.claro, gris.oscuro)}
-      </div>
+      {normales > 0 && (
+        <div className="flex items-center justify-between gap-3">
+          <b className="text-[0.8125rem] font-semibold">Pueden</b>
+          {escala(gris.claro, gris.oscuro)}
+        </div>
+      )}
       {claves.length > 0 && (
         <div className="flex items-center justify-between gap-3">
           <b className="text-[0.8125rem] font-semibold">{claves.length > 1 ? "Pueden los clave" : "Puede el clave"}</b>
