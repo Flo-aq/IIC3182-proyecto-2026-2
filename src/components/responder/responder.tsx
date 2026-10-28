@@ -76,9 +76,9 @@ function entradaInicial(datos: ReunionConRespuestas, cuentaNombre: string | null
 
 export function Responder({ datos, esDuenoCuenta, cuentaNombre }: { datos: ReunionConRespuestas; esDuenoCuenta: boolean; cuentaNombre: string | null }) {
   const { reunion: r, slug, cerrada } = datos;
-  // Cierra la reunión quien la creó: con su cuenta, o desde el navegador donde la creó (guardó una llave).
+  // Cierra la reunión quien la creó: con su cuenta, desde el navegador donde la creó (guardó una llave) o entrando con el
+  // nombre que puso como organizador (se calcula más abajo, cuando ya se sabe con qué nombre se entró).
   const tieneLlave = useTieneLlave(slug);
-  const esDueno = esDuenoCuenta || tieneLlave;
   const [entrada] = useState(() => entradaInicial(datos, cuentaNombre));
   const [pestana, setPestana] = useState(0);
   const [mias, setMias] = useState<Set<string>>(() => new Set(entrada?.disp ?? []));
@@ -90,6 +90,8 @@ export function Responder({ datos, esDuenoCuenta, cuentaNombre }: { datos: Reuni
   const [listo, setListo] = useState(entrada !== null);
   /** Nombre de la respuesta que ya existía y se está editando (escribir el mismo nombre equivale a entrar). */
   const [retomada, setRetomada] = useState<string | null>(entrada?.retomada ?? null);
+  const entroComoOrganizador = listo && Boolean(datos.organizador) && nombre.trim().toLowerCase() === datos.organizador?.trim().toLowerCase();
+  const esDueno = esDuenoCuenta || tieneLlave || entroComoOrganizador;
   const [guardando, setGuardando] = useState(false);
   /** Si lo que acabas de guardar quedó como integrante clave (hasta que llegue la lista actualizada del servidor). */
   const [claveGuardada, setClaveGuardada] = useState(false);
@@ -333,7 +335,7 @@ export function Responder({ datos, esDuenoCuenta, cuentaNombre }: { datos: Reuni
               hidden={!panelAbierto}
               className="absolute top-full right-0 z-30 mt-2 max-h-[calc(100dvh-9rem)] w-[19rem] overflow-y-auto rounded-3xl border bg-background p-3 shadow-2xl outline-none"
             >
-              <Compartir slug={slug} reunion={r} personas={personas} enlace={enlace} cerrada={cerrada} esDueno={esDueno} />
+              <Compartir slug={slug} reunion={r} personas={personas} enlace={enlace} cerrada={cerrada} esDueno={esDueno} nombre={listo ? nombre.trim() : undefined} />
             </section>
           </div>
         )}
@@ -451,7 +453,7 @@ export function Responder({ datos, esDuenoCuenta, cuentaNombre }: { datos: Reuni
 
           {verCompartir && (
             <section aria-label="Compartir" className="min-h-0 min-w-0">
-              <Compartir slug={slug} reunion={r} personas={personas} enlace={enlace} cerrada={cerrada} esDueno={esDueno} />
+              <Compartir slug={slug} reunion={r} personas={personas} enlace={enlace} cerrada={cerrada} esDueno={esDueno} nombre={listo ? nombre.trim() : undefined} />
             </section>
           )}
         </div>

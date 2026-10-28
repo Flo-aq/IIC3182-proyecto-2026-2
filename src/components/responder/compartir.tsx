@@ -36,10 +36,12 @@ type Props = {
   cerrada: string | null;
   /** Quien creó la reunión puede cerrarla y reabrirla desde aquí. */
   esDueno: boolean;
+  /** El nombre con que se entró a la reunión (se manda al cerrar, por si es el del organizador). */
+  nombre?: string;
 };
 
 /** Link para invitar, quién respondió, un texto resumen para mandar al grupo y, para quien creó la reunión, cerrarla. */
-export function Compartir({ slug, reunion: r, personas, enlace, cerrada, esDueno }: Props) {
+export function Compartir({ slug, reunion: r, personas, enlace, cerrada, esDueno, nombre }: Props) {
   const [verTexto, setVerTexto] = useState(false);
   const [verAviso, setVerAviso] = useState(false);
   const [verCierre, setVerCierre] = useState(false);
@@ -179,7 +181,7 @@ export function Compartir({ slug, reunion: r, personas, enlace, cerrada, esDueno
         {verTexto && <pre className="rounded-2xl border bg-muted p-3 font-sans text-xs/relaxed break-words whitespace-pre-wrap">{resumen}</pre>}
       </div>
 
-      {esDueno && <CerrarDialog open={verCierre} onOpenChange={setVerCierre} slug={slug} reunion={r} personas={personas} />}
+      {esDueno && <CerrarDialog open={verCierre} onOpenChange={setVerCierre} slug={slug} reunion={r} personas={personas} nombre={nombre} />}
       <NotificarDialog
         open={verAviso}
         onOpenChange={setVerAviso}

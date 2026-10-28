@@ -54,7 +54,7 @@ const ID_AVISO = "campos-pendientes";
 
 /** Aviso arriba con lo que falta; reemplaza al anterior si se vuelve a intentar. */
 function avisar(ps: Problema[]) {
-  const faltan = ps.some((p) => p.campo === "nombre" || p.campo === "dias");
+  const faltan = ps.some((p) => p.campo === "nombre" || p.campo === "organizador" || p.campo === "dias");
   toast.error(faltan ? "Faltan campos por completar" : "Revisa estos campos", {
     id: ID_AVISO,
     duration: 8000,
@@ -70,6 +70,15 @@ function avisar(ps: Problema[]) {
   });
 }
 
+/** Los problemas de la reunión, más el nombre de quien organiza si hace falta (justo después del nombre de la reunión). */
+function todosLosProblemas(r: Reunion, pideNombre: boolean, organizador: string): Problema[] {
+  const ps = problemas(r);
+  if (!pideNombre || organizador.trim()) return ps;
+  const falta: Problema = { campo: "organizador", etiqueta: "Tu nombre", mensaje: "Escribe tu nombre" };
+  const i = ps.findIndex((p) => p.campo === "nombre");
+  return [...ps.slice(0, i + 1), falta, ...ps.slice(i + 1)];
+}
+
 type Props = {
   /** Las plantillas de la cuenta; vienen de GET /api/me/templates y solo existen con sesión. */
   plantillasPropias?: PlantillaDeCuenta[];
@@ -78,8 +87,11 @@ type Props = {
 };
 
 export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Props) {
-  const { conCuenta } = useSesion();
+  const { conCuenta, cargando } = useSesion();
   const propias = plantillasPropias;
+  /** Quien organiza sin cuenta escribe su nombre: con él podrá cerrar la reunión desde cualquier dispositivo (con cuenta no hace falta). */
+  const [organizador, setOrganizador] = useState("");
+  const pideNombre = !cargando && !conCuenta;
   // Primero las propias (solo se ofrecen con cuenta) y después las de WeMeet.
   const plantillasDisponibles: (Plantilla & { tags?: string[] })[] = conCuenta ? [...propias, ...PLANTILLAS] : PLANTILLAS;
   const [r, setR] = useState<Reunion>(INICIAL);
@@ -129,16 +141,16 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
     if (!intento) return;
     const visible = toast.getToasts().some((t) => t.id === ID_AVISO && !("dismiss" in t && t.dismiss));
     if (!visible) return;
-    const faltan = problemas(r);
+    const faltan = todosLosProblemas(r, pideNombre, organizador);
     if (faltan.length) avisar(faltan);
     else toast.dismiss(ID_AVISO);
-  }, [intento, r]);
+  }, [intento, r, pideNombre, organizador]);
 
   const nuevoId = () => `b${++contador.current}`;
   const cambiar = (parcial: Partial<Reunion>) => setR((prev) => ({ ...prev, ...parcial }));
 
   // Después del primer intento de crear, los campos con problemas quedan marcados hasta que se corrijan.
-  const pendientes = intento ? problemas(r) : [];
+  const pendientes = intento ? todosLosProblemas(r, pideNombre, organizador) : [];
   const camposMalos = new Set<string>(pendientes.map((p) => p.campo));
   const reglasMalas = new Set(pendientes.flatMap((p) => (p.regla ? [p.regla] : [])));
 
@@ -166,8 +178,8 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
   const manana = hoy ? mananaDe(hoy) : null;
 
   const enfocar = (campo: Problema["campo"]) => {
-    if (campo === "nombre") {
-      const el = document.getElementById("nombre");
+    if (campo === "nombre" || campo === "organizador") {
+      const el = document.getElementById(campo === "nombre" ? "nombre" : "organizador");
       el?.focus();
       el?.scrollIntoView({ block: "center", behavior: "smooth" });
       return;
@@ -178,7 +190,7 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
 
   const crear = async () => {
     if (enviando) return;
-    const faltan = problemas(r);
+    const faltan = todosLosProblemas(r, pideNombre, organizador);
     if (faltan.length) {
       setIntento(true);
       avisar(faltan);
@@ -193,7 +205,7 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // Los tags son de la cuenta: sin sesión el servidor los ignora.
-        body: JSON.stringify({ ...r, etiquetas: conCuenta ? etiquetas : [] }),
+        body: JSON.stringify({ ...r, etiquetas: conCuenta ? etiquetas : [], organizador: pideNombre ? organizador.trim() : undefined }),
       });
       const cuerpo = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(cuerpo.error ?? "No pudimos crear la reunión.");
@@ -357,6 +369,41 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
             <Pencil aria-hidden="true" className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
           </div>
         </div>
+
+        {/* Sin cuenta, el nombre de quien organiza: con él se podrá cerrar la reunión desde cualquier dispositivo. */}
+        {pideNombre && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="organizador" className="flex items-center gap-1.5 text-sm font-bold">
+                <span>
+                  Tu nombre
+                  <Obligatorio />
+                </span>
+                {camposMalos.has("organizador") && <TriangleAlert className="size-4 text-destructive" aria-hidden="true" />}
+              </label>
+              {camposMalos.has("organizador") && (
+                <p id="organizador-error" className="text-[0.8125rem] font-medium text-destructive">
+                  Escribe tu nombre
+                </p>
+              )}
+            </div>
+            <Input
+              id="organizador"
+              value={organizador}
+              maxLength={40}
+              autoComplete="off"
+              aria-required="true"
+              aria-invalid={camposMalos.has("organizador") || undefined}
+              aria-describedby={camposMalos.has("organizador") ? "organizador-error" : "organizador-ayuda"}
+              placeholder="Ej: Camila"
+              className="h-12 rounded-2xl border-[1.5px] px-3.5 text-base"
+              onChange={(e) => setOrganizador(e.target.value)}
+            />
+            <p id="organizador-ayuda" className="text-xs text-muted-foreground">
+              Para cerrar la reunión después, desde cualquier dispositivo: entra con este mismo nombre.
+            </p>
+          </div>
+        )}
 
         <FilasAcordeon filas={filas} abierto={abierto} onAbierto={setAbierto} malos={camposMalos} />
       </main>

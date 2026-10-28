@@ -202,8 +202,8 @@
   }
   body {
     @apply bg-background text-foreground;
-    /* Bajo 320 px la pantalla deja de comprimirse y aparece scroll horizontal. */
-    min-width: 320px;
+    /* Ancho mínimo de todas las pantallas: bajo 360 px (lo que necesita la barra de arriba) deja de comprimirse y aparece scroll horizontal. */
+    min-width: 360px;
     letter-spacing: var(--tracking-normal);
   }
 }
