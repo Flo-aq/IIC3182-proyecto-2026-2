@@ -1,0 +1,23 @@
+name: Enviar avisos
+
+# Vercel (plan gratis) solo corre un cron al día; los avisos "en una fecha y hora" necesitan algo más seguido.
+# Cada 10 minutos esto llama a la app, que envía los avisos que ya llegaron. Necesita dos secretos del repositorio:
+#   APP_URL      la dirección de la app, sin "/" al final (por ejemplo https://iic-3182-proyecto-2026-2.vercel.app)
+#   CRON_SECRET  el mismo valor de la variable CRON_SECRET de Vercel
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  avisos:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar a /api/cron/avisos
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl --fail --silent --show-error --max-time 60 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/avisos"

@@ -30,7 +30,7 @@ export const GUIAS: Guia[] = [
       "Bloquea los horarios que no se pueden usar, como el almuerzo, y define hasta dos integrantes clave si la reunión depende de alguien. Si quieres, parte desde una plantilla.",
       "Revisa el resumen (al costado en el computador, o con \"Ver resumen\" en el celular) y toca \"Crear reunión\".",
     ],
-    nota: "Con una cuenta (próximamente) también puedes ponerle tags a la reunión, para encontrarla después en tu perfil.",
+    nota: "Con una cuenta también puedes ponerle tags a la reunión, para encontrarla después en tu perfil.",
   },
   {
     vista: "Responder una reunión",
@@ -93,7 +93,7 @@ export const GRUPOS_PREGUNTAS: { vista: string; id: string; corto: string; pregu
     preguntas: [
       {
         pregunta: "¿Necesito una cuenta?",
-        respuesta: "No. Para crear una reunión y para responderla basta con abrir el link; al responder solo escribes tu nombre. Una cuenta (próximamente) sirve para tener tu perfil: tus reuniones y tus tags.",
+        respuesta: "No. Para crear una reunión y para responderla basta con abrir el link; al responder solo escribes tu nombre. Una cuenta de Google sirve para tener tu perfil: tus reuniones, tags y plantillas.",
       },
       {
         pregunta: "¿Qué es un integrante clave?",
@@ -170,7 +170,7 @@ export const GRUPOS_PREGUNTAS: { vista: string; id: string; corto: string; pregu
       },
       {
         pregunta: "¿Cómo funciona \"Notificarme\"?",
-        respuesta: "Eliges cuándo quieres el aviso (cuando respondan cierta cantidad de personas, en una fecha, o en una fecha y hora) y escribes tu correo. Todavía es una versión de prueba: no se envían correos.",
+        respuesta: "Eliges cuándo quieres el aviso (cuando respondan cierta cantidad de personas, en una fecha, o en una fecha y hora) y escribes tu correo. Te escribimos una sola vez, con cómo va la reunión. Las fechas y horas son de la zona de la reunión; si eliges solo una fecha, el correo llega ese día a las 9:00. Si la reunión se cierra antes, el aviso se cancela.",
       },
       {
         pregunta: "¿Puedo cambiar un aviso?",

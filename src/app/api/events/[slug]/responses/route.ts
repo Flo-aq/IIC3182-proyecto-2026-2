@@ -1,4 +1,7 @@
+import { after } from "next/server";
+
 import { usuarioActual } from "@/lib/supabase/servidor";
+import { revisarAvisosPorCantidad } from "@/server/avisos";
 import { leerJson, respuestaDeError } from "@/server/errores";
 import { guardarRespuesta } from "@/server/reuniones";
 
@@ -7,7 +10,10 @@ export async function PUT(req: Request, ctx: RouteContext<"/api/events/[slug]/re
   try {
     const { slug } = await ctx.params;
     const usuario = await usuarioActual();
-    const res = await guardarRespuesta(slug, await leerJson(req), usuario?.id ?? null);
+    const { eventId, ...res } = await guardarRespuesta(slug, await leerJson(req), usuario?.id ?? null);
+    // Ya se respondió: con la respuesta guardada, se envían (sin hacer esperar a quien respondió) los avisos "cuando respondan N personas" que se cumplieron.
+    const origen = new URL(req.url).origin;
+    after(() => revisarAvisosPorCantidad(eventId, origen).catch((e) => console.error("avisos por cantidad", e)));
     return Response.json(res);
   } catch (e) {
     return respuestaDeError(e);

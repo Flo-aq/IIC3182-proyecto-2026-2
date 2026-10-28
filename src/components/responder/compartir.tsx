@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { avisoPendiente, borrarAvisoLocal, guardarAvisoLocal, leerAvisoLocal, pedirAviso, quitarAviso } from "@/lib/api-avisos";
 import { BOTON } from "@/lib/botones";
 import type { Reunion } from "@/lib/reunion";
 import { type PersonaSet, textoResumen } from "@/lib/respuestas";
@@ -42,7 +43,9 @@ export function Compartir({ slug, reunion: r, personas, enlace, cerrada, esDueno
   const [verTexto, setVerTexto] = useState(false);
   const [verAviso, setVerAviso] = useState(false);
   const [verCierre, setVerCierre] = useState(false);
-  const [aviso, setAviso] = useState<Aviso | null>(null);
+  /** El aviso por correo pendiente de esta persona: con `token` si lo pidió sin cuenta (con cuenta se quita con la sesión). */
+  const [pedido, setPedido] = useState<{ aviso: Aviso; id: string; token?: string } | null>(null);
+  const aviso = pedido?.aviso ?? null;
   /** La lista de quién respondió muestra a lo más dos líneas; con "Ver más" se ve el resto. */
   const [abierta, setAbierta] = useState(false);
   const [hayMas, setHayMas] = useState(false);
@@ -57,6 +60,35 @@ export function Compartir({ slug, reunion: r, personas, enlace, cerrada, esDueno
     observador.observe(el);
     return () => observador.disconnect();
   }, [personas.length]);
+  // Al abrir, se busca si ya había pedido un aviso: el de su cuenta, o el que pidió sin cuenta desde este navegador.
+  useEffect(() => {
+    if (cerrada) return;
+    let vigente = true;
+    const local = leerAvisoLocal(slug);
+    avisoPendiente(slug, local ? { id: local.id, token: local.token } : undefined)
+      .then((p) => {
+        if (!vigente) return;
+        if (p) setPedido({ aviso: p.aviso, id: p.id, token: local?.id === p.id ? local.token : undefined });
+        else if (local) borrarAvisoLocal(slug); // ya se envió o se quitó
+      })
+      .catch(() => {});
+    return () => {
+      vigente = false;
+    };
+  }, [slug, cerrada]);
+
+  const quitarMiAviso = async () => {
+    if (!pedido) return;
+    try {
+      await quitarAviso(pedido.id, pedido.token);
+      borrarAvisoLocal(slug);
+      setPedido(null);
+      toast.success("Aviso quitado");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
   const claves = personas.filter((p) => p.clave);
   const resumen = textoResumen(r, personas, enlace);
 
@@ -117,10 +149,7 @@ export function Compartir({ slug, reunion: r, personas, enlace, cerrada, esDueno
                 type="button"
                 variant="outline"
                 className={cn(BOTON.secundario, "border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive")}
-                onClick={() => {
-                  setAviso(null);
-                  toast.success("Aviso quitado");
-                }}
+                onClick={quitarMiAviso}
               >
                 <BellOff />
                 Quitar mi aviso
@@ -156,8 +185,11 @@ export function Compartir({ slug, reunion: r, personas, enlace, cerrada, esDueno
         onOpenChange={setVerAviso}
         respondieron={personas.length}
         inicial={null}
-        onGuardar={(a) => {
-          setAviso(a);
+        zona={r.zona}
+        onGuardar={async (a) => {
+          const c = await pedirAviso(slug, a);
+          guardarAvisoLocal(slug, { aviso: a, id: c.id, token: c.tokenCancelar });
+          setPedido({ aviso: a, id: c.id, token: c.tokenCancelar });
           toast.success("Aviso activado", { description: `Te avisaremos ${textoAviso(a)} a ${a.correo}.` });
         }}
       />
