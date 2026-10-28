@@ -9,6 +9,7 @@ import { PerfilSinCuenta } from "./perfil-sin-cuenta";
  * Las listas parten vacías: con la base de datos vendrán de GET /api/me/events y GET /api/me/templates.
  */
 export function PerfilConSesion() {
-  const { conCuenta } = useSesion();
+  const { conCuenta, cargando } = useSesion();
+  if (cargando) return <div className="h-dvh bg-background" />;
   return conCuenta ? <Perfil reunionesIniciales={[]} plantillasIniciales={[]} /> : <PerfilSinCuenta />;
 }

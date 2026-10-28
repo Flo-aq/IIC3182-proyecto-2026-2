@@ -1,10 +1,13 @@
 "use client";
 
 import { LogIn, User } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { BOTON } from "@/lib/botones";
+import { urlDeLogin, useSesion } from "@/lib/sesion";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PuntoClave } from "./punto-clave";
@@ -32,10 +35,19 @@ export function Acceso({ nombre, onNombre, clave, onClave, onContinuar, hayClave
   const idNombre = useId();
   const idClave = useId();
   const campo = useRef<HTMLInputElement>(null);
+  const ruta = usePathname();
+  const { conCuenta, nombre: nombreCuenta } = useSesion();
 
   useEffect(() => {
     campo.current?.focus();
   }, []);
+
+  // Con cuenta, el nombre parte con el de la cuenta (se puede cambiar).
+  useEffect(() => {
+    if (conCuenta && !nombre) onNombre(nombreCuenta);
+    // Solo cuando se conoce la cuenta: si la persona borra el nombre, no se vuelve a poner.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conCuenta]);
 
   return (
     <div className="flex flex-1 flex-col justify-center pb-6">
@@ -97,18 +109,20 @@ export function Acceso({ nombre, onNombre, clave, onClave, onContinuar, hayClave
           </Button>
         </form>
 
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex w-full items-center gap-3 text-xs text-muted-foreground">
-            <span aria-hidden="true" className="h-px flex-1 bg-border" />
-            o
-            <span aria-hidden="true" className="h-px flex-1 bg-border" />
+        {!conCuenta && (
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex w-full items-center gap-3 text-xs text-muted-foreground">
+              <span aria-hidden="true" className="h-px flex-1 bg-border" />
+              o
+              <span aria-hidden="true" className="h-px flex-1 bg-border" />
+            </div>
+            <a href={urlDeLogin(ruta)} className={cn(buttonVariants({ variant: "outline" }), BOTON.secundario, "px-6")}>
+              <LogIn />
+              Iniciar sesión con Google
+            </a>
+            <p className="text-xs text-muted-foreground">Con una cuenta tendrás tus reuniones y plantillas.</p>
           </div>
-          <Button type="button" variant="outline" disabled className={`${BOTON.secundario} px-6`} title="Próximamente: iniciar sesión con tu cuenta">
-            <LogIn />
-            Iniciar sesión
-          </Button>
-          <p className="text-xs text-muted-foreground">Con una cuenta tendrás tus reuniones y plantillas. Próximamente.</p>
-        </div>
+        )}
       </div>
     </div>
   );
