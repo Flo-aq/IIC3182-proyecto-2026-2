@@ -3,6 +3,7 @@
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 
+import { BarraSuperior } from "@/components/barra-superior";
 import { Button } from "@/components/ui/button";
 import { BOTON } from "@/lib/botones";
 import { useOrigen } from "@/lib/cliente";
@@ -36,7 +37,9 @@ export function Exito({ codigo, reunion: r, onOtra }: Props) {
   ];
 
   return (
-    <div className="flex flex-col gap-4 px-4 py-6">
+    <div className="mx-auto flex min-h-dvh w-full flex-col bg-background lg:max-w-[88rem]">
+      <BarraSuperior />
+      <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-6 md:max-w-xl">
       <div className="grid size-14 place-items-center rounded-full bg-lime">
         <Check className="size-7" />
       </div>
@@ -60,6 +63,7 @@ export function Exito({ codigo, reunion: r, onOtra }: Props) {
       <Button variant="outline" className={BOTON.secundario} onClick={onOtra}>
         Crear otra reunión
       </Button>
+      </div>
     </div>
   );
 }

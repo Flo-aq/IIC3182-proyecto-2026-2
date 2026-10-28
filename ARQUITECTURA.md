@@ -94,7 +94,7 @@ Lo que valida la API además (no se puede expresar bien en SQL): que los días d
 ## Endpoints
 Todos pasan por el servidor. Los de `/api/me/*` exigen sesión (cookie de Supabase Auth); los demás son públicos. Los errores devuelven `{ error: "mensaje para la persona" }` con el código HTTP que corresponda (400 validación, 401 sin sesión, 403 sin permiso, 404 no existe, 409 conflicto, 429 muchas peticiones).
 
-**Implementado (28 oct):** `POST /api/events`, `GET /api/events/[slug]`, `PUT /api/events/[slug]/responses` y `GET /api/cron/limpieza`. El servidor usa `@supabase/supabase-js` con la llave secreta (`src/server/db.ts`) y valida con `zod`; lo que debe guardarse junto va en funciones SQL (`create_event`, `save_response`, `purge_stale_events`, en `supabase/migrations/20261028120000_funciones.sql`), que solo puede llamar el servidor. La grilla habla en bloques `"AAAA-MM-DD|fila"` (hora de la zona de la reunión); el servidor los convierte a instantes (`timestamptz`) con `@date-fns/tz` y de vuelta. Tope de 120 días por reunión (`src/lib/limites.ts`).
+**Implementado (28 oct):** `POST /api/events`, `GET /api/events/[slug]`, `PUT /api/events/[slug]/responses`, `GET /api/cron/limpieza`, el login (`/auth/login`, `/auth/callback`) y todos los `/api/me/*` salvo los avisos (`aviso` va siempre en `null` hasta construir las notificaciones). Sin sesión, `/api/me/*` responde `401`. Con sesión, `POST /api/events` guarda `owner_id` y los `etiquetas` (tags) de la reunión, y `PUT …/responses` guarda `user_id`. La sesión vive en cookies de Supabase Auth (`@supabase/ssr`); `src/proxy.ts` renueva el token, y cerrar sesión se hace desde el navegador (no hay `POST /auth/signout`). Las plantillas se duplican desde la interfaz, creando una nueva con `POST` (no hay endpoint `duplicate`). El servidor usa `@supabase/supabase-js` con la llave secreta (`src/server/db.ts`) y valida con `zod`; lo que debe guardarse junto va en funciones SQL (`create_event`, `save_response`, `purge_stale_events`, en `supabase/migrations/20261028120000_funciones.sql`), que solo puede llamar el servidor. La grilla habla en bloques `"AAAA-MM-DD|fila"` (hora de la zona de la reunión); el servidor los convierte a instantes (`timestamptz`) con `@date-fns/tz` y de vuelta. Tope de 120 días por reunión (`src/lib/limites.ts`).
 
 ### Reuniones (públicos)
 | Método y ruta | Qué hace | Cuerpo / respuesta |
@@ -110,21 +110,20 @@ Todos pasan por el servidor. Los de `/api/me/*` exigen sesión (cookie de Supaba
 ### Cuenta (con sesión)
 | Método y ruta | Qué hace | Cuerpo / respuesta |
 |---|---|---|
-| `GET /api/me/events` | La lista del perfil | query: `role=creada\|respondida`, `tags=a,b` (deben estar todos), `sort=date\|name`, `dir=asc\|desc` → `[{ slug, title, role, roleDate, responseCount, tags[], notification: null \| { kind, summary, email } }]` |
-| `POST /api/me/events/[slug]/tags` | Pone un tag a una reunión (lo crea si no existe, sin distinguir mayúsculas) | `{ name }` → `201`. `409 tag_limit_event` (5 por reunión) o `409 tag_limit_account` (30 por cuenta) |
+| `GET /api/me/events` | La lista del perfil: las reuniones creadas y respondidas (una sola vez cada una) | → `[{ slug, titulo, tags[], respuestas, rol: "creada"\|"respondida", fecha (instante ISO), aviso: null }]`. Los filtros y el orden se hacen en el navegador |
+| `POST /api/me/events/[slug]/tags` | Pone un tag a una reunión de la cuenta (lo crea si no existe, sin distinguir mayúsculas) | `{ nombre }` → `201`. `409` si la reunión ya tiene 5 tags o la cuenta ya tiene 30; `404` si la cuenta no creó ni respondió esa reunión |
 | `DELETE /api/me/events/[slug]/tags/[name]` | Quita un tag de una reunión (si queda sin uso, desaparece) | `204` |
-| `GET /api/me/tags` | Tus tags con cuántas reuniones tiene cada uno | `[{ name, count }]` |
-| `GET /api/me/templates` | Tus plantillas | `[{ id, name, slotMinutes, start, end, maxKey, blocked[], tags[] }]` |
-| `POST /api/me/templates` | Crea una plantilla | misma forma, sin `id` → `201`. `409 name_taken` si el nombre se repite |
-| `PUT /api/me/templates/[id]` | Reemplaza una plantilla | `200`; `409 name_taken` |
-| `POST /api/me/templates/[id]/duplicate` | La duplica como "… (copia)" | `201` con la nueva |
+| `GET /api/me/tags` | Tus tags con en cuántas reuniones y plantillas está cada uno | `[{ name, count }]` |
+| `GET /api/me/templates` | Tus plantillas, las más nuevas primero | `[{ id, nombre, detalle, bloqueMin, desde, hasta, claves, bloqueos: [{ desde, hasta }], tags[] }]` |
+| `POST /api/me/templates` | Crea una plantilla | `{ nombre, bloqueMin, desde, hasta, claves, bloqueos[], tags[] }` → `201` con la plantilla. `409` si el nombre se repite; `400` si algo no es válido |
+| `PUT /api/me/templates/[id]` | Reemplaza una plantilla | igual que el anterior → `200`; `409` si el nombre ya lo tiene otra |
 | `DELETE /api/me/templates/[id]` | La borra (las reuniones ya creadas no cambian) | `204` |
 
 ### Sesión y tareas programadas
 | Método y ruta | Qué hace |
 |---|---|
-| `GET /auth/callback` | Vuelta de Google: Supabase Auth guarda la sesión y redirige a donde estaba el usuario |
-| `POST /auth/signout` | Cierra la sesión |
+| `GET /auth/login?next=/ruta` | Empieza el inicio de sesión con Google y, al terminar, vuelve a `next` (solo rutas de la app) |
+| `GET /auth/callback` | Vuelta de Google: cambia el código por la sesión (cookies) y redirige a `next`; si falla, vuelve con `?error=login` |
 | `GET /api/cron/limpieza` | Cron de Vercel (diario, con `CRON_SECRET`): borra las reuniones sin respuestas hace 2 meses (o sin ninguna y creadas hace 2 meses), con todo lo que cuelga de ellas. Al tocar la base a diario evita que Supabase pause el proyecto |
 | `POST /api/cron/notifications` | Cron de Vercel (cada 5 min, con secreto): envía los avisos `date` y `datetime` cuyo `notify_at` ya pasó, y los `count` cuyas reuniones ya llegaron a la cantidad pedida; marca `sent` |
 

@@ -2,10 +2,15 @@
 
 import { Copy, Pencil, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { type Dispatch, type SetStateAction, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import {
+  actualizarPlantilla as actualizarPlantillaApi,
+  borrarPlantilla as borrarPlantillaApi,
+  crearPlantilla as crearPlantillaApi,
+} from "@/lib/api-cuenta";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { BOTON } from "@/lib/botones";
 import { type PlantillaDeCuenta, detalleDe } from "@/lib/plantillas";
@@ -15,7 +20,7 @@ import { PlantillaDialog } from "./plantilla-dialog";
 
 type Props = {
   plantillas: PlantillaDeCuenta[];
-  onCambiar: (plantillas: PlantillaDeCuenta[]) => void;
+  onCambiar: Dispatch<SetStateAction<PlantillaDeCuenta[]>>;
   /** Todos los tags de la cuenta (de reuniones y de plantillas). */
   tagsDeLaCuenta: string[];
 };
@@ -23,8 +28,9 @@ type Props = {
 /** Los botones de Editar, Duplicar y Borrar: solo el icono en el celular; con texto desde lg. */
 const ICONO = "size-9 rounded-full lg:h-9 lg:w-auto lg:gap-1.5 lg:px-2.5";
 
-let contadorDeIds = 100;
-const nuevoId = () => `u${++contadorDeIds}`;
+/** Id provisional mientras el servidor guarda la plantilla; después se reemplaza por el real. */
+let contadorDeIds = 0;
+const nuevoId = () => `provisional-${++contadorDeIds}`;
 
 /** Un nombre que no se repita: "Reunión (copia)", "Reunión (copia 2)"… */
 function nombreDeCopia(nombre: string, existentes: string[]): string {
@@ -45,21 +51,61 @@ export function PlantillasPerfil({ plantillas, onCambiar, tagsDeLaCuenta }: Prop
 
   const enEdicion = editor && editor.id !== "nueva" ? (plantillas.find((p) => p.id === editor.id) ?? null) : null;
 
-  const guardar = (p: Plantilla, tags: string[]) => {
+  // Los cambios se ven al instante; si el servidor los rechaza, se deshacen y se avisa por qué.
+  const guardar = async (p: Plantilla, tags: string[]) => {
     if (enEdicion) {
-      onCambiar(plantillas.map((x) => (x.id === enEdicion.id ? { ...p, id: enEdicion.id, tags } : x)));
-      toast.success("Cambios guardados", { description: p.nombre });
+      const antes = enEdicion;
+      const id = antes.id;
+      onCambiar((ps) => ps.map((x) => (x.id === id ? { ...p, id, tags } : x)));
+      try {
+        const guardada = await actualizarPlantillaApi(id, p, tags);
+        onCambiar((ps) => ps.map((x) => (x.id === id ? guardada : x)));
+        toast.success("Cambios guardados", { description: p.nombre });
+      } catch (e) {
+        onCambiar((ps) => ps.map((x) => (x.id === id ? antes : x)));
+        toast.error((e as Error).message);
+      }
     } else {
-      onCambiar([{ ...p, id: nuevoId(), tags }, ...plantillas]);
-      toast.success("Plantilla creada", { description: p.nombre });
+      const temporal = nuevoId();
+      onCambiar((ps) => [{ ...p, id: temporal, tags }, ...ps]);
+      try {
+        const creada = await crearPlantillaApi(p, tags);
+        onCambiar((ps) => ps.map((x) => (x.id === temporal ? creada : x)));
+        toast.success("Plantilla creada", { description: p.nombre });
+      } catch (e) {
+        onCambiar((ps) => ps.filter((x) => x.id !== temporal));
+        toast.error((e as Error).message);
+      }
     }
   };
 
-  const duplicar = (p: PlantillaDeCuenta) => {
+  const duplicar = async (p: PlantillaDeCuenta) => {
     const nombre = nombreDeCopia(p.nombre, plantillas.map((x) => x.nombre));
-    const i = plantillas.indexOf(p);
-    onCambiar([...plantillas.slice(0, i + 1), { ...p, id: nuevoId(), nombre, tags: [...p.tags], bloqueos: p.bloqueos.map((b) => ({ ...b })) }, ...plantillas.slice(i + 1)]);
-    toast.success("Plantilla duplicada", { description: nombre });
+    const copia: PlantillaDeCuenta = { ...p, id: nuevoId(), nombre, tags: [...p.tags], bloqueos: p.bloqueos.map((b) => ({ ...b })) };
+    onCambiar((ps) => {
+      const i = ps.findIndex((x) => x.id === p.id);
+      return [...ps.slice(0, i + 1), copia, ...ps.slice(i + 1)];
+    });
+    try {
+      const creada = await crearPlantillaApi({ ...p, nombre }, p.tags);
+      onCambiar((ps) => ps.map((x) => (x.id === copia.id ? creada : x)));
+      toast.success("Plantilla duplicada", { description: nombre });
+    } catch (e) {
+      onCambiar((ps) => ps.filter((x) => x.id !== copia.id));
+      toast.error((e as Error).message);
+    }
+  };
+
+  const borrar = async (p: PlantillaDeCuenta) => {
+    const i = plantillas.findIndex((x) => x.id === p.id);
+    onCambiar((ps) => ps.filter((x) => x.id !== p.id));
+    try {
+      await borrarPlantillaApi(p.id);
+      toast.success("Plantilla borrada", { description: p.nombre });
+    } catch (e) {
+      onCambiar((ps) => [...ps.slice(0, i), p, ...ps.slice(i)]);
+      toast.error((e as Error).message);
+    }
   };
 
   return (
@@ -149,8 +195,7 @@ export function PlantillasPerfil({ plantillas, onCambiar, tagsDeLaCuenta }: Prop
               className={cn(BOTON.secundario, "border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive")}
               onClick={() => {
                 if (!porBorrar) return;
-                onCambiar(plantillas.filter((p) => p.id !== porBorrar.id));
-                toast.success("Plantilla borrada", { description: porBorrar.nombre });
+                void borrar(porBorrar);
                 setPorBorrar(null);
               }}
             >

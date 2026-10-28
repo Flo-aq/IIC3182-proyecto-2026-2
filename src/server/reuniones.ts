@@ -2,16 +2,18 @@ import "server-only";
 import { TZDate } from "@date-fns/tz";
 import { z } from "zod";
 import { MAX_BLOQUEOS, MAX_CLAVES, MAX_DIAS, MAX_NOMBRE, MAX_TITULO } from "@/lib/limites";
+import { MAX_TAGS_POR_REUNION } from "@/lib/perfil";
 import { OPCIONES_BLOQUE, type Reunion, aMinutos, problemas } from "@/lib/reunion";
 import { type ReunionConRespuestas, totalFilas } from "@/lib/respuestas";
 import { db } from "./db";
 import { ErrorApi } from "./errores";
+import { ponerTags } from "./tags";
 import { nuevoSlug, nuevoTokenDueno } from "./slug";
 
 // ---- validación de lo que llega del navegador ----
 
-const hora = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
-const horaFin = z.union([hora, z.literal("24:00")]);
+export const hora = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+export const horaFin = z.union([hora, z.literal("24:00")]);
 const fecha = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((s) => !Number.isNaN(Date.parse(`${s}T00:00:00Z`)) && new Date(`${s}T00:00:00Z`).toISOString().startsWith(s));
 const zona = z.string().refine((z) => {
   try {
@@ -64,6 +66,7 @@ const hhmm = (t: string): string => t.slice(0, 5);
 
 // ---- crear ----
 
+/** Crea la reunión. Con `ownerId` (cuenta), queda en su perfil y se le ponen los `etiquetas` que vengan en la entrada. */
 export async function crearReunion(entrada: unknown, ownerId: string | null = null): Promise<{ slug: string; tokenDueno: string }> {
   const parsed = esquemaReunion.safeParse(entrada);
   if (!parsed.success) throw new ErrorApi(400, "Los datos de la reunión no son válidos.");
@@ -75,7 +78,7 @@ export async function crearReunion(entrada: unknown, ownerId: string | null = nu
   const tokenDueno = nuevoTokenDueno();
   for (let intento = 0; intento < 5; intento++) {
     const slug = nuevoSlug();
-    const { error } = await db().rpc("create_event", {
+    const { data: id, error } = await db().rpc("create_event", {
       p_slug: slug,
       p_title: r.titulo.trim(),
       p_owner_id: ownerId,
@@ -88,7 +91,14 @@ export async function crearReunion(entrada: unknown, ownerId: string | null = nu
       p_max_key: r.claves,
       p_blocked: r.bloqueos.map((b) => ({ days: [...new Set(b.dias)].sort(), start: b.desde, end: b.hasta })),
     });
-    if (!error) return { slug, tokenDueno };
+    if (!error) {
+      const etiquetas = ownerId ? z.array(z.string()).max(MAX_TAGS_POR_REUNION).safeParse((entrada as { etiquetas?: unknown }).etiquetas) : null;
+      // Los tags son un extra: si alguno falla (por ejemplo, el tope de la cuenta) la reunión ya está creada y se queda sin ellos.
+      if (ownerId && etiquetas?.success && etiquetas.data.length) {
+        await ponerTags(ownerId, id as string, etiquetas.data).catch((e) => console.error("tags de la reunión nueva", e));
+      }
+      return { slug, tokenDueno };
+    }
     if (error.code !== "23505") throw error; // solo se reintenta si el slug ya existía
   }
   throw new Error("No se pudo generar un link único");
