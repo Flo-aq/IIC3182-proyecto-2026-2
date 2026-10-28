@@ -43,6 +43,9 @@ export async function listarReuniones(userId: string): Promise<ReunionDePerfilAp
     .in("event_id", filas.map((f) => f.event_id))
     .eq("tags.user_id", userId);
   if (e2) throw e2;
+  const { data: estados, error: e3 } = await db().from("events").select("id, status").in("id", filas.map((f) => f.event_id));
+  if (e3) throw e3;
+  const cerradas = new Set((estados as { id: string; status: string }[]).filter((s) => s.status === "closed").map((s) => s.id));
   const tagsPorEvento = new Map<string, string[]>();
   for (const t of etiquetas as unknown as { event_id: string; tags: { name: string } }[]) {
     tagsPorEvento.set(t.event_id, [...(tagsPorEvento.get(t.event_id) ?? []), t.tags.name]);
@@ -56,6 +59,7 @@ export async function listarReuniones(userId: string): Promise<ReunionDePerfilAp
     rol: f.role,
     fecha: f.role_date,
     aviso: null,
+    cerrada: cerradas.has(f.event_id),
   }));
 }
 

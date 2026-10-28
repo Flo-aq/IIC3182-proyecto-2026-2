@@ -5,7 +5,8 @@
  * - principal (variant por defecto, violeta relleno): la acción que hace avanzar la pantalla o el diálogo. Debería haber una sola.
  *   Crear reunión, Continuar, Guardar mis horarios, Activar aviso, Copiar link. La de Crear reunión es la única "héroe".
  * - secundario (variant="outline", grande): otra opción de igual rango o una alternativa. Volver, Cerrar, Notificarme,
- *   Copiar resumen, Crear otra reunión, Iniciar sesión.
+ *   Cerrar reunión, Copiar resumen, Crear otra reunión, Iniciar sesión. En Compartir, Cerrar reunión y Notificarme van uno bajo el
+ *   otro, iguales (pesan lo mismo), y una línea marcada los separa de Copiar resumen.
  * - compacto (variant="outline", chico): acciones dentro del contenido o de una barra. Compartir, Filtros, Rellenar, Copiar link
  *   de una reunión, Crear (un tag).
  * - confirmar (violeta relleno, chico): la acción afirmativa de un recuadro chico. Listo.

@@ -14,6 +14,8 @@ export type ReunionDePerfil = {
   fecha: string;
   /** El aviso por correo que pediste, si pediste alguno. */
   aviso: Aviso | null;
+  /** La reunión ya se cerró y tiene horario confirmado. */
+  cerrada: boolean;
 };
 
 export type Tipo = "todas" | ReunionDePerfil["rol"];

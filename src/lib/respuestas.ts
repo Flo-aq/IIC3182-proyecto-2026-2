@@ -6,7 +6,8 @@ import { type Reunion, aIso, aMinutos, bloquesDelDia, desdeIso, etiquetaDia, zon
 /** Una persona que ya respondió. `disp` tiene una entrada "AAAA-MM-DD|fila" por cada bloque en que puede. */
 export type Persona = { nombre: string; clave: boolean; disp: string[] };
 
-export type ReunionConRespuestas = { slug: string; reunion: Reunion; personas: Persona[] };
+/** `cerrada` es el bloque ("AAAA-MM-DD|fila") que se eligió al cerrar la reunión, o null si sigue abierta. */
+export type ReunionConRespuestas = { slug: string; reunion: Reunion; personas: Persona[]; cerrada: string | null };
 
 /** Con más días que esto, la grilla muestra semanas de lunes a domingo y flechas para ir de una a otra. */
 export const MAX_DIAS_SIN_SEMANAS = 7;

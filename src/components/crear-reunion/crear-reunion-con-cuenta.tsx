@@ -11,7 +11,7 @@ type Datos = { plantillas: PlantillaDeCuenta[]; tags: string[] };
 
 /**
  * La pantalla de crear reunión con los datos de la cuenta, si la hay: sus plantillas (GET /api/me/templates) y sus tags
- * (GET /api/me/tags). Sin cuenta se muestra de inmediato; con cuenta se espera a tenerlos para que `?plantilla=` encuentre la suya.
+ * (GET /api/me/tags). La pantalla se muestra de inmediato (sin esperar) y esos datos se suman cuando llegan, sin reiniciarla.
  * Si no se pueden cargar, se crea la reunión igual, sin ellos.
  */
 export function CrearReunionConCuenta() {
@@ -29,6 +29,5 @@ export function CrearReunionConCuenta() {
     };
   }, [conCuenta]);
 
-  if (conCuenta && !datos) return <div className="h-dvh bg-background" />;
   return <CrearReunion plantillasPropias={datos?.plantillas ?? []} tagsDeLaCuenta={datos?.tags ?? []} />;
 }

@@ -10,7 +10,7 @@ Los flujos de usuario con sus diagramas están en `flujos-de-usuario.md`; las de
 | Interfaz (crear reunión, responder, perfil, plantillas, ayuda) | **Hecha**. Sin base de datos todavía: ninguna reunión existe (todo `/e/…` da 404), las listas del perfil parten vacías y nada se guarda |
 | Cuenta | **Sin conectar**: nadie tiene cuenta, "Sign in" está desactivado y `/perfil` pide iniciar sesión. La interfaz con cuenta (perfil, plantillas, tags) está hecha y espera sus datos |
 | Base de datos y endpoints | **Por construir**; el esquema ya está listo y probado en `supabase/migrations/` |
-| Cerrar la reunión y el `.ics` | Por construir (no tiene pantalla todavía) |
+| Cerrar la reunión y el `.ics` | Hecho (ver D-36 en el registro de decisiones) |
 | Avisos por correo | Pantalla hecha ("Notificarme" y "Avisar / No avisar"); el envío, por construir |
 
 ## Stack
@@ -100,10 +100,11 @@ Todos pasan por el servidor. Los de `/api/me/*` exigen sesión (cookie de Supaba
 | Método y ruta | Qué hace | Cuerpo / respuesta |
 |---|---|---|
 | `POST /api/events` | Crea la reunión | La misma forma que `Reunion` en `src/lib/reunion.ts`: `{ titulo, zona, dias[], desde, hasta, bloqueMin, claves, bloqueos: [{ id, dias[], desde, hasta }] }` → `201 { slug, tokenDueno }`. Con sesión también guardará `owner_id` y los tags *(pendiente)* |
-| `GET /api/events/[slug]` | Los datos de la reunión y todas las respuestas | → `{ slug, reunion, personas: [{ nombre, clave, disp[] }] }`, con `disp` en bloques `"AAAA-MM-DD\|fila"`. `404` si no existe |
+| `GET /api/events/[slug]` | Los datos de la reunión y todas las respuestas | → `{ slug, reunion, personas: [{ nombre, clave, disp[] }], cerrada }`, con `disp` en bloques `"AAAA-MM-DD\|fila"` y `cerrada` el bloque elegido (o `null` si sigue abierta). No incluye quién la creó. `404` si no existe |
 | `PUT /api/events/[slug]/responses` | Guarda (crea o reemplaza) una respuesta por nombre | `{ nombre, clave, bloques[] }` → `200 { clave, claveDenegada }`. Si ya no hay lugar de integrante clave se guarda igual como participante normal (`claveDenegada: true`, no es un 409). `400` si algún bloque no existe; `409` si la reunión está cerrada. Con sesión fijará `user_id` *(pendiente)* |
-| `POST /api/events/[slug]/close` | Cierra la reunión y elige el horario | `{ chosenStart }`; exige `owner_token` o ser el dueño. *(Por construir)* |
-| `GET /api/events/[slug]/ics` | Descarga el `.ics` del horario elegido | *(Por construir)* |
+| `POST /api/events/[slug]/close` | Cierra la reunión con el horario elegido | `{ bloque: "AAAA-MM-DD\|fila", tokenDueno? }` → `200`. Solo su creador: con sesión si la cuenta es la dueña, o con el `tokenDueno` que devolvió `POST /api/events` (el navegador lo guarda en `localStorage`). `403` si no es el creador, `400` si el bloque no existe o está bloqueado, `409` si ya está cerrada. Desde entonces `PUT …/responses` responde `409` |
+| `POST /api/events/[slug]/reopen` | Reabre una reunión cerrada | `{ tokenDueno? }` → `200`; mismo permiso. Borra `chosen_start` y `closed_at`. **La interfaz no lo usa** (se decidió que una reunión cerrada queda cerrada, D-39) |
+| `GET /api/events/[slug]/ics` | Descarga el `.ics` del horario confirmado | `text/calendar`, un evento de `slot_minutes` minutos con la hora en UTC. `404` si la reunión sigue abierta |
 | `POST /api/events/[slug]/notifications` | Pide un aviso por correo | `{ email, kind, targetCount?, notifyAt? }` → `201 { id }`. `409` si ya hay uno pendiente para ese correo. Con sesión, fija `user_id` |
 | `DELETE /api/notifications/[id]` | Quita un aviso (pasa a `cancelled`) | exige ser su dueño (sesión) o llevar el `cancelToken` que va en cada correo (para quien lo pidió sin cuenta) |
 
