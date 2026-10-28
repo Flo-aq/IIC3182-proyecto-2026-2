@@ -90,6 +90,7 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
   const [plantilla, setPlantilla] = useState(-1);
   const [intento, setIntento] = useState(false);
   const [creada, setCreada] = useState<{ codigo: string; reunion: Reunion } | null>(null);
+  const [enviando, setEnviando] = useState(false);
   const [info, setInfo] = useState(false);
   const [verResumen, setVerResumen] = useState(false);
   /** Los tags de la reunión: solo los puede poner quien tiene una cuenta. */
@@ -172,7 +173,8 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
     setTimeout(() => document.querySelector(`[data-fila="${campo}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" }), 80);
   };
 
-  const crear = () => {
+  const crear = async () => {
+    if (enviando) return;
     const faltan = problemas(r);
     if (faltan.length) {
       setIntento(true);
@@ -182,8 +184,22 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
     }
     setIntento(false);
     toast.dismiss(ID_AVISO);
-    setCreada({ codigo: Math.random().toString(36).slice(2, 6), reunion: r });
-    window.scrollTo(0, 0);
+    setEnviando(true);
+    try {
+      const res = await fetch("/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(r),
+      });
+      const cuerpo = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(cuerpo.error ?? "No pudimos crear la reunión.");
+      setCreada({ codigo: cuerpo.slug, reunion: r });
+      window.scrollTo(0, 0);
+    } catch (e) {
+      toast.error(e instanceof TypeError ? "No pudimos conectarnos. Revisa tu internet e intenta de nuevo." : (e as Error).message);
+    } finally {
+      setEnviando(false);
+    }
   };
 
   const filas: { id: string; etiqueta: string; obligatorio: boolean; resumen: string; contenido: React.ReactNode }[] = [
@@ -352,8 +368,8 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
         >
           Ver resumen
         </Button>
-        <Button className={`${BOTON.heroe} w-full`} onClick={crear}>
-          Crear reunión
+        <Button className={`${BOTON.heroe} w-full`} onClick={crear} disabled={enviando}>
+          {enviando ? "Creando…" : "Crear reunión"}
         </Button>
       </div>
       </div>

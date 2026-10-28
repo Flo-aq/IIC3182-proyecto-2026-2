@@ -92,14 +92,16 @@ Lo que valida la API además (no se puede expresar bien en SQL): que los días d
 | `not-found` | Cuando el link no lleva a ninguna parte (por ejemplo, una reunión que no existe) | todos |
 
 ## Endpoints
-Todos pasan por el servidor. Los de `/api/me/*` exigen sesión (cookie de Supabase Auth); los demás son públicos. Los errores devuelven `{ error: { code, message } }` con el código HTTP que corresponda (400 validación, 401 sin sesión, 403 sin permiso, 404 no existe, 409 conflicto, 429 muchas peticiones).
+Todos pasan por el servidor. Los de `/api/me/*` exigen sesión (cookie de Supabase Auth); los demás son públicos. Los errores devuelven `{ error: "mensaje para la persona" }` con el código HTTP que corresponda (400 validación, 401 sin sesión, 403 sin permiso, 404 no existe, 409 conflicto, 429 muchas peticiones).
+
+**Implementado (28 oct):** `POST /api/events`, `GET /api/events/[slug]`, `PUT /api/events/[slug]/responses` y `GET /api/cron/limpieza`. El servidor usa `@supabase/supabase-js` con la llave secreta (`src/server/db.ts`) y valida con `zod`; lo que debe guardarse junto va en funciones SQL (`create_event`, `save_response`, `purge_stale_events`, en `supabase/migrations/20261028120000_funciones.sql`), que solo puede llamar el servidor. La grilla habla en bloques `"AAAA-MM-DD|fila"` (hora de la zona de la reunión); el servidor los convierte a instantes (`timestamptz`) con `@date-fns/tz` y de vuelta. Tope de 120 días por reunión (`src/lib/limites.ts`).
 
 ### Reuniones (públicos)
 | Método y ruta | Qué hace | Cuerpo / respuesta |
 |---|---|---|
-| `POST /api/events` | Crea la reunión | `{ title, timezone, days[], start, end, slotMinutes, maxKey, blocked: [{ days[], start, end }], tags?[] }` → `201 { slug, ownerToken }`. Guarda `owner_token` en una cookie; con sesión también `owner_id` y los `tags` (solo con sesión) |
-| `GET /api/events/[slug]` | Los datos de la reunión y todas las respuestas | → `{ event, blocked[], participants: [{ name, isKey, slots[] }] }`. `404` si no existe |
-| `PUT /api/events/[slug]/responses` | Guarda (crea o reemplaza) una respuesta por nombre | `{ name, isKey, slots[] }` → `200 { participant }`. `409 key_full` si ya no hay lugar de integrante clave; `400` si algún bloque no existe o está bloqueado. Con sesión, fija `user_id` |
+| `POST /api/events` | Crea la reunión | La misma forma que `Reunion` en `src/lib/reunion.ts`: `{ titulo, zona, dias[], desde, hasta, bloqueMin, claves, bloqueos: [{ id, dias[], desde, hasta }] }` → `201 { slug, tokenDueno }`. Con sesión también guardará `owner_id` y los tags *(pendiente)* |
+| `GET /api/events/[slug]` | Los datos de la reunión y todas las respuestas | → `{ slug, reunion, personas: [{ nombre, clave, disp[] }] }`, con `disp` en bloques `"AAAA-MM-DD\|fila"`. `404` si no existe |
+| `PUT /api/events/[slug]/responses` | Guarda (crea o reemplaza) una respuesta por nombre | `{ nombre, clave, bloques[] }` → `200 { clave, claveDenegada }`. Si ya no hay lugar de integrante clave se guarda igual como participante normal (`claveDenegada: true`, no es un 409). `400` si algún bloque no existe; `409` si la reunión está cerrada. Con sesión fijará `user_id` *(pendiente)* |
 | `POST /api/events/[slug]/close` | Cierra la reunión y elige el horario | `{ chosenStart }`; exige `owner_token` o ser el dueño. *(Por construir)* |
 | `GET /api/events/[slug]/ics` | Descarga el `.ics` del horario elegido | *(Por construir)* |
 | `POST /api/events/[slug]/notifications` | Pide un aviso por correo | `{ email, kind, targetCount?, notifyAt? }` → `201 { id }`. `409` si ya hay uno pendiente para ese correo. Con sesión, fija `user_id` |
@@ -123,6 +125,7 @@ Todos pasan por el servidor. Los de `/api/me/*` exigen sesión (cookie de Supaba
 |---|---|
 | `GET /auth/callback` | Vuelta de Google: Supabase Auth guarda la sesión y redirige a donde estaba el usuario |
 | `POST /auth/signout` | Cierra la sesión |
+| `GET /api/cron/limpieza` | Cron de Vercel (diario, con `CRON_SECRET`): borra las reuniones sin respuestas hace 2 meses (o sin ninguna y creadas hace 2 meses), con todo lo que cuelga de ellas. Al tocar la base a diario evita que Supabase pause el proyecto |
 | `POST /api/cron/notifications` | Cron de Vercel (cada 5 min, con secreto): envía los avisos `date` y `datetime` cuyo `notify_at` ya pasó, y los `count` cuyas reuniones ya llegaron a la cantidad pedida; marca `sent` |
 
 El aviso `count` también se puede revisar al guardar una respuesta (`PUT …/responses`), para enviarlo apenas se cumple sin esperar al cron.

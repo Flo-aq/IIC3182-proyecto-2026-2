@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight, Hand, Info, PaintBucket, Plus, Share2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -68,6 +69,10 @@ export function Responder({ datos }: { datos: ReunionConRespuestas }) {
   const [listo, setListo] = useState(false);
   /** Nombre de la respuesta que ya existía y se está editando (escribir el mismo nombre equivale a entrar). */
   const [retomada, setRetomada] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState(false);
+  /** Si lo que acabas de guardar quedó como integrante clave (hasta que llegue la lista actualizada del servidor). */
+  const [claveGuardada, setClaveGuardada] = useState(false);
+  const router = useRouter();
   const [verDetalles, setVerDetalles] = useState(false);
   const [semana, setSemana] = useState(0);
   const [fijado, setFijado] = useState<string | null>(null);
@@ -93,10 +98,14 @@ export function Responder({ datos }: { datos: ReunionConRespuestas }) {
   const existente = buscado ? datos.personas.find((p) => p.nombre.trim().toLowerCase() === buscado) : undefined;
 
   // Si edito una respuesta que ya existía, esa persona soy yo: no se cuenta dos veces ni ocupa un lugar clave extra.
-  const otros = useMemo(() => datos.personas.filter((p) => p.nombre !== retomada), [datos.personas, retomada]);
+  const otros = useMemo(
+    () => datos.personas.filter((p) => p.nombre.trim().toLowerCase() !== retomada?.toLowerCase()),
+    [datos.personas, retomada],
+  );
   const hayClaves = r.claves > 0;
   const clavesLlenas = !hayClaves || otros.filter((p) => p.clave).length >= r.claves;
-  const esClave = retomada ? Boolean(datos.personas.find((p) => p.nombre === retomada)?.clave) : clave && !clavesLlenas;
+  const propia = retomada ? datos.personas.find((p) => p.nombre.trim().toLowerCase() === retomada.toLowerCase()) : undefined;
+  const esClave = retomada ? (propia?.clave ?? claveGuardada) : clave && !clavesLlenas;
 
   const personas: PersonaSet[] = useMemo(() => {
     const demas = conjuntos(otros);
@@ -147,10 +156,44 @@ export function Responder({ datos }: { datos: ReunionConRespuestas }) {
     setListo(false);
   };
 
-  const guardar = () => {
-    setGuardadas([...mias]);
-    toast.success("Guardado ✓", { description: "Vuelve a este link y escribe el mismo nombre para cambiar tus horarios." });
+  const guardar = async () => {
+    if (guardando) return;
+    setGuardando(true);
+    try {
+      const res = await fetch(`/api/events/${slug}/responses`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre: nombre.trim(), clave: esClave || clave, bloques: [...mias] }),
+      });
+      const cuerpo = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(cuerpo.error ?? "No pudimos guardar tus horarios.");
+      setGuardadas([...mias]);
+      // Desde ahora esta respuesta existe en el servidor: seguimos editándola y no se cuenta dos veces.
+      setRetomada(nombre.trim().replace(/\s+/g, " "));
+      setClaveGuardada(cuerpo.clave);
+      if (cuerpo.claveDenegada) {
+        toast.warning("Guardado ✓, pero ya no quedaban lugares de integrante clave", { description: "Quedaste como participante normal." });
+      } else {
+        toast.success("Guardado ✓", { description: "Vuelve a este link y escribe el mismo nombre para cambiar tus horarios." });
+      }
+      router.refresh();
+    } catch (e) {
+      toast.error(e instanceof TypeError ? "No pudimos conectarnos. Revisa tu internet e intenta de nuevo." : (e as Error).message);
+    } finally {
+      setGuardando(false);
+    }
   };
+
+  // Las respuestas de los demás llegan solas: se actualizan al volver a la pestaña y cada medio minuto.
+  useEffect(() => {
+    const actualizar = () => document.visibilityState === "visible" && router.refresh();
+    const cada = setInterval(actualizar, 30_000);
+    document.addEventListener("visibilitychange", actualizar);
+    return () => {
+      clearInterval(cada);
+      document.removeEventListener("visibilitychange", actualizar);
+    };
+  }, [router]);
 
   const ver = fijado ?? visto;
 
@@ -185,8 +228,8 @@ export function Responder({ datos }: { datos: ReunionConRespuestas }) {
       <p className="mb-1.5 text-center text-xs text-muted-foreground">
         {marcados} {marcados === 1 ? "bloque" : "bloques"} de {r.bloqueMin} min · {textoHoras}
       </p>
-      <Button className={`${BOTON.principal} w-full`} disabled={marcados === 0 && guardadas === null} onClick={guardar}>
-        {guardadas === null ? "Guardar mis horarios" : sinCambios ? "Guardado ✓" : "Guardar cambios"}
+      <Button className={`${BOTON.principal} w-full`} disabled={(marcados === 0 && guardadas === null) || guardando} onClick={guardar}>
+        {guardando ? "Guardando…" : guardadas === null ? "Guardar mis horarios" : sinCambios ? "Guardado ✓" : "Guardar cambios"}
       </Button>
     </>
   );

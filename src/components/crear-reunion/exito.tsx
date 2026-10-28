@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { BOTON } from "@/lib/botones";
+import { useOrigen } from "@/lib/cliente";
 import { type Reunion, resumenBloques, resumenDias, textoHorario, zonaCorta } from "@/lib/reunion";
 import { resumenBloqueos } from "./resumen";
 
@@ -12,11 +13,12 @@ type Props = { codigo: string; reunion: Reunion; onOtra: () => void };
 
 export function Exito({ codigo, reunion: r, onOtra }: Props) {
   const [copiado, setCopiado] = useState(false);
-  const enlace = `wemeet.app/e/${codigo}`;
+  const origen = useOrigen();
+  const enlace = `${origen}/e/${codigo}`;
 
   const copiar = async () => {
     try {
-      await navigator.clipboard.writeText(`https://${enlace}`);
+      await navigator.clipboard.writeText(enlace);
     } catch {
       // Sin permiso del navegador: dejamos igual el aviso, el enlace queda visible para copiarlo a mano.
     }
@@ -58,9 +60,6 @@ export function Exito({ codigo, reunion: r, onOtra }: Props) {
       <Button variant="outline" className={BOTON.secundario} onClick={onOtra}>
         Crear otra reunión
       </Button>
-      <p className="text-xs text-muted-foreground">
-        Versión de prueba: la reunión todavía no se guarda en una base de datos.
-      </p>
     </div>
   );
 }
