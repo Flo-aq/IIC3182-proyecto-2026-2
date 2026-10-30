@@ -1,5 +1,5 @@
 import { actualizarPlantilla, borrarPlantilla, exigirUsuario } from "@/server/cuenta";
-import { leerJson, respuestaDeError } from "@/server/errores";
+import { leerJson, respuestaDeError } from "@/server/comun/errores";
 
 /** Reemplaza una plantilla. `409` si el nombre ya lo tiene otra. */
 export async function PUT(req: Request, ctx: RouteContext<"/api/me/templates/[id]">) {

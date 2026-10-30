@@ -58,11 +58,11 @@ Otros comandos: `npm run build` (compilar), `npm run start` (servir lo compilado
 | Carpeta | Qué hay |
 |---|---|
 | `src/app` | Páginas (`/`, `/e/[slug]`, `/perfil`, `/how-to`, `/faq`, páginas legales) y rutas de la API (`/api/...`) |
-| `src/components` | Interfaz, agrupada por pantalla: `crear-reunion`, `responder`, `perfil`, más la base de shadcn/ui en `ui` |
-| `src/lib` | Lógica que no depende del navegador (bloques y horas, colores del mapa de calor, textos de la ayuda, clientes de la API) |
-| `src/server` | Lo que solo corre en el servidor: base de datos, reuniones, avisos, correo y límite de peticiones |
+| `src/components` | Interfaz: una carpeta por pantalla (`crear-reunion`, `responder`, `perfil`), lo que usan varias pantallas (`comunes`, `formularios`, `compartidos`, `ayuda`) y la base de shadcn/ui en `ui` |
+| `src/lib` | Lógica que no depende del servidor, por tema: `reunion` (bloques, horas, respuestas, cierre), `cuenta` (sesión, perfil, plantillas), `api` (clientes de la API), `utilidades` y `ayuda` (textos) |
+| `src/server` | Lo que solo corre en el servidor: `reuniones`, `avisos` (con el correo), `cuenta` (con los tags) y `comun` (base de datos, errores, límite de peticiones) |
 | `supabase/migrations` | El esquema de la base de datos |
-| `public/ayuda` | Fotos que usa el How to |
+| `public/ayuda` | Fotos que usa el How to, en una subcarpeta por sección |
 | `.github/workflows` | Tarea programada que envía los avisos cada 10 minutos |
 
 Stack: Next.js (App Router) con TypeScript, Tailwind CSS v4, shadcn/ui, Supabase (Postgres y Auth), Resend y Vercel. El detalle de la base de datos, los endpoints y las reglas está en [`ARQUITECTURA.md`](ARQUITECTURA.md).

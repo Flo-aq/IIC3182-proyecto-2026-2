@@ -1,17 +1,20 @@
 "use client";
 
-import { Info, Pencil, TriangleAlert } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { CAMPO_TEXTO, PAD } from "@/lib/utilidades/estilos";
+import { Info, Pencil } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { Campo, Obligatorio } from "@/components/comunes/campo";
 import { Button } from "@/components/ui/button";
-import { BOTON } from "@/lib/botones";
-import { AvisoSuperior, BarraSuperior } from "@/components/barra-superior";
+import { BOTON } from "@/lib/utilidades/botones";
+import { AvisoSuperior, BarraSuperior } from "@/components/comunes/barra-superior";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { guardarLlave } from "@/lib/dueno";
-import { useSesion } from "@/lib/sesion";
-import type { PlantillaDeCuenta } from "@/lib/plantillas";
+import { pedir } from "@/lib/api";
+import { guardarLlave } from "@/lib/cuenta/dueno";
+import { copiar } from "@/lib/utilidades/portapapeles";
+import { useSesion } from "@/lib/cuenta/sesion";
+import type { PlantillaDeCuenta } from "@/lib/cuenta/plantillas";
 import {
   PLANTILLAS,
   type Problema,
@@ -20,22 +23,17 @@ import {
   type Reunion,
   aplicarPlantilla,
   mananaDe,
-  podarBloqueos,
-  problemas,
   proximosHabiles,
-  textoCantidadDias,
-  zonaCorta,
 } from "@/lib/reunion";
-import { DiasEditor } from "./dias-editor";
-import { Etiquetas } from "./etiquetas";
+import { ID_AVISO, avisar, todosLosProblemas } from "./avisos-crear";
 import { Exito } from "./exito";
-import { FilasAcordeon, Obligatorio, useFilasConfiguracion } from "./filas-configuracion";
-import { InfoDialog } from "./info-dialog";
-import { AreaScroll } from "./area-scroll";
-import { Plantillas } from "./plantillas";
-import { ResumenReunion } from "./resumen";
-import { ResumenDialog } from "./resumen-dialog";
-import { ZonaHoraria } from "./zona-horaria";
+import { FilasAcordeon, useFilasConfiguracion } from "../formularios/filas-configuracion";
+import { filasDeCrear } from "./filas-crear";
+import { InfoDialog } from "./resumen/info-dialog";
+import { AreaScroll } from "../comunes/area-scroll";
+import { ResumenReunion } from "./resumen/resumen";
+import { ResumenDialog } from "./resumen/resumen-dialog";
+import { SeccionPlantilla } from "./seccion-plantilla";
 
 const INICIAL: Reunion = {
   titulo: "",
@@ -48,36 +46,6 @@ const INICIAL: Reunion = {
   bloqueos: [],
 };
 
-const PAD = "pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]";
-
-const ID_AVISO = "campos-pendientes";
-
-/** Aviso arriba con lo que falta; reemplaza al anterior si se vuelve a intentar. */
-function avisar(ps: Problema[]) {
-  const faltan = ps.some((p) => p.campo === "nombre" || p.campo === "organizador" || p.campo === "dias");
-  toast.error(faltan ? "Faltan campos por completar" : "Revisa estos campos", {
-    id: ID_AVISO,
-    duration: 8000,
-    description: (
-      <ul className="mt-1 flex flex-col gap-0.5">
-        {ps.map((p) => (
-          <li key={`${p.campo}-${p.regla ?? ""}`}>
-            <b>{p.etiqueta}:</b> {p.mensaje}
-          </li>
-        ))}
-      </ul>
-    ),
-  });
-}
-
-/** Los problemas de la reunión, más el nombre de quien organiza si hace falta (justo después del nombre de la reunión). */
-function todosLosProblemas(r: Reunion, pideNombre: boolean, organizador: string): Problema[] {
-  const ps = problemas(r);
-  if (!pideNombre || organizador.trim()) return ps;
-  const falta: Problema = { campo: "organizador", etiqueta: "Tu nombre", mensaje: "Escribe tu nombre" };
-  const i = ps.findIndex((p) => p.campo === "nombre");
-  return [...ps.slice(0, i + 1), falta, ...ps.slice(i + 1)];
-}
 
 type Props = {
   /** Las plantillas de la cuenta; vienen de GET /api/me/templates y solo existen con sesión. */
@@ -107,7 +75,6 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
   /** Los tags de la reunión: solo los puede poner quien tiene una cuenta. */
   const [etiquetas, setEtiquetas] = useState<string[]>([]);
   const contador = useRef(0);
-  const idPlantilla = useId();
 
   // La fecha de hoy y la zona del dispositivo solo existen en el navegador: se leen al montar.
   useEffect(() => {
@@ -202,74 +169,28 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
     toast.dismiss(ID_AVISO);
     setEnviando(true);
     try {
-      const res = await fetch("/api/events", {
+      const cuerpo = await pedir<{ slug: string; tokenDueno: string }>("/api/events", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         // Los tags son de la cuenta: sin sesión el servidor los ignora.
         body: JSON.stringify({ ...r, etiquetas: conCuenta ? etiquetas : [], organizador: pideNombre ? organizador.trim() : undefined }),
+        porDefecto: "No pudimos crear la reunión.",
       });
-      const cuerpo = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(cuerpo.error ?? "No pudimos crear la reunión.");
       // La llave del creador queda en este navegador: con ella podrá cerrar la reunión aunque no tenga cuenta.
       guardarLlave(cuerpo.slug, cuerpo.tokenDueno);
       // El link se copia solo: es lo primero que se hace con una reunión nueva. Si el navegador no deja, la pantalla lo avisa.
-      let copiado = false;
-      try {
-        await navigator.clipboard.writeText(`${window.location.origin}/e/${cuerpo.slug}`);
-        copiado = true;
-        toast.success("Link copiado");
-      } catch {
-        // Sin permiso del portapapeles: queda el botón "Copiar" en la pantalla siguiente.
-      }
+      const copiado = await copiar(`${window.location.origin}/e/${cuerpo.slug}`);
+      if (copiado) toast.success("Link copiado");
+      // Sin permiso del portapapeles: queda el botón "Copiar" en la pantalla siguiente.
       setCreada({ codigo: cuerpo.slug, reunion: r, copiado });
       window.scrollTo(0, 0);
     } catch (e) {
-      toast.error(e instanceof TypeError ? "No pudimos conectarnos. Revisa tu internet e intenta de nuevo." : (e as Error).message);
+      toast.error((e as Error).message);
     } finally {
       setEnviando(false);
     }
   };
 
-  const filas: { id: string; etiqueta: string; obligatorio: boolean; resumen: string; contenido: React.ReactNode }[] = [
-    {
-      id: "dias",
-      etiqueta: "Días",
-      obligatorio: true,
-      resumen: textoCantidadDias(r.dias.length),
-      contenido: manana ? (
-        <DiasEditor
-          dias={r.dias}
-          manana={manana}
-          onChange={(dias) => cambiar({ dias, bloqueos: podarBloqueos(r.bloqueos, dias) })}
-        />
-      ) : null,
-    },
-    ...filasConfig,
-    {
-      id: "zona",
-      etiqueta: "Zona horaria",
-      obligatorio: false,
-      resumen: zonaCorta(r.zona),
-      contenido: (
-        <div className="flex flex-col gap-2">
-          <ZonaHoraria value={r.zona} onChange={(zona) => cambiar({ zona })} />
-          <p className="text-xs text-muted-foreground">Cada persona verá los horarios en su zona.</p>
-        </div>
-      ),
-    },
-    // Los tags son de la cuenta: sin cuenta no se ofrecen.
-    ...(conCuenta
-      ? [
-          {
-            id: "etiquetas",
-            etiqueta: "Tags",
-            obligatorio: false,
-            resumen: etiquetas.length ? etiquetas.join(", ") : "Ninguno",
-            contenido: <Etiquetas elegidos={etiquetas} onChange={setEtiquetas} deLaCuenta={tagsDeLaCuenta} />,
-          },
-        ]
-      : []),
-  ];
+  const filas = filasDeCrear({ r, cambiar, manana, filasConfig, conCuenta, etiquetas, onEtiquetas: setEtiquetas, tagsDeLaCuenta });
 
   return (
     <div className="flex h-dvh min-h-[40rem] flex-col bg-background">
@@ -302,108 +223,64 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
 
       <AreaScroll className="min-h-0 flex-1" bordes={false}>
       <main className={`flex flex-col gap-3 pt-3 pb-2 ${PAD}`}>
-        <div className="flex flex-col gap-2 border-y py-2">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-2">
-              <label htmlFor={idPlantilla} className="text-[0.95rem] font-semibold">
-                Usar plantilla
-              </label>
-              {/* Las plantillas en amarillo son las de la cuenta. */}
-              {conCuenta && usarPlantilla && propias.length > 0 && (
-                <span title="Las plantillas en amarillo son tuyas" className="rounded-full bg-lime px-2 py-0.5 text-[0.6875rem] font-bold">
-                  Tuyas
-                </span>
-              )}
-            </div>
-            <Switch
-              id={idPlantilla}
-              checked={usarPlantilla}
-              onCheckedChange={(v) => {
-                setUsarPlantilla(v);
-                if (!v) setPlantilla(-1);
-              }}
-            />
-          </div>
-          {usarPlantilla && (
-            <Plantillas
-              plantillas={plantillasDisponibles}
-              elegida={plantilla}
-              onElegir={(i) => {
-                setPlantilla(i);
-                const elegida = plantillasDisponibles[i];
-                setR((prev) => aplicarPlantilla(prev, elegida, nuevoId));
-                // Las plantillas propias traen sus tags; las de WeMeet no cambian los que ya elegiste.
-                if (elegida.tags) setEtiquetas(elegida.tags);
-              }}
-            />
-          )}
-        </div>
+        <SeccionPlantilla
+          conCuenta={conCuenta}
+          hayPropias={propias.length > 0}
+          usar={usarPlantilla}
+          onUsar={(v) => {
+            setUsarPlantilla(v);
+            if (!v) setPlantilla(-1);
+          }}
+          plantillas={plantillasDisponibles}
+          elegida={plantilla}
+          onElegir={(i) => {
+            setPlantilla(i);
+            const elegida = plantillasDisponibles[i];
+            setR((prev) => aplicarPlantilla(prev, elegida, nuevoId));
+            // Las plantillas propias traen sus tags; las de WeMeet no cambian los que ya elegiste.
+            if (elegida.tags) setEtiquetas(elegida.tags);
+          }}
+        />
 
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-2">
-            <label htmlFor="nombre" className="flex items-center gap-1.5 text-sm font-bold">
-              <span>
-                Nombre de la reunión
-                <Obligatorio />
-              </span>
-              {camposMalos.has("nombre") && <TriangleAlert className="size-4 text-destructive" aria-hidden="true" />}
-            </label>
-            {camposMalos.has("nombre") && (
-              <p id="nombre-error" className="text-[0.8125rem] font-medium text-destructive">
-                Escribe un nombre
-              </p>
-            )}
-          </div>
-          <div className="relative">
-            <Input
-              id="nombre"
-              value={r.titulo}
-              maxLength={80}
-              autoComplete="off"
-              aria-required="true"
-              aria-invalid={camposMalos.has("nombre") || undefined}
-              aria-describedby={camposMalos.has("nombre") ? "nombre-error" : undefined}
-              placeholder="Ej: Reunión de equipo IHC"
-              className="h-12 rounded-2xl border-[1.5px] pr-11 pl-3.5 text-base"
-              onChange={(e) => cambiar({ titulo: e.target.value })}
-            />
-            <Pencil aria-hidden="true" className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          </div>
-        </div>
+        <Campo id="nombre" etiqueta="Nombre de la reunión" obligatorio errorAlLado error={camposMalos.has("nombre") ? "Escribe un nombre" : undefined}>
+          {(campo) => (
+            <div className="relative">
+              <Input
+                {...campo}
+                value={r.titulo}
+                maxLength={80}
+                autoComplete="off"
+                placeholder="Ej: Reunión de equipo IHC"
+                className="h-12 rounded-2xl border-[1.5px] pr-11 pl-3.5 text-base"
+                onChange={(e) => cambiar({ titulo: e.target.value })}
+              />
+              <Pencil aria-hidden="true" className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            </div>
+          )}
+        </Campo>
 
         {/* Sin cuenta, el nombre de quien organiza: con él se podrá cerrar la reunión desde cualquier dispositivo. */}
         {pideNombre && (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-2">
-              <label htmlFor="organizador" className="flex items-center gap-1.5 text-sm font-bold">
-                <span>
-                  Tu nombre
-                  <Obligatorio />
-                </span>
-                {camposMalos.has("organizador") && <TriangleAlert className="size-4 text-destructive" aria-hidden="true" />}
-              </label>
-              {camposMalos.has("organizador") && (
-                <p id="organizador-error" className="text-[0.8125rem] font-medium text-destructive">
-                  Escribe tu nombre
-                </p>
-              )}
-            </div>
-            <Input
-              id="organizador"
-              value={organizador}
-              maxLength={40}
-              autoComplete="off"
-              aria-required="true"
-              aria-invalid={camposMalos.has("organizador") || undefined}
-              aria-describedby={camposMalos.has("organizador") ? "organizador-error" : "organizador-ayuda"}
-              placeholder="Ej: Camila"
-              className="h-12 rounded-2xl border-[1.5px] px-3.5 text-base"
-              onChange={(e) => setOrganizador(e.target.value)}
-            />
-            <p id="organizador-ayuda" className="text-xs text-muted-foreground">
-              Para cerrar la reunión después, desde cualquier dispositivo: entra con este mismo nombre.
-            </p>
-          </div>
+          <Campo
+            id="organizador"
+            etiqueta="Tu nombre"
+            obligatorio
+            errorAlLado
+            error={camposMalos.has("organizador") ? "Escribe tu nombre" : undefined}
+            ayuda="Para cerrar la reunión después, desde cualquier dispositivo: entra con este mismo nombre."
+          >
+            {(campo) => (
+              <Input
+                {...campo}
+                value={organizador}
+                maxLength={40}
+                autoComplete="off"
+                placeholder="Ej: Camila"
+                className={CAMPO_TEXTO}
+                onChange={(e) => setOrganizador(e.target.value)}
+              />
+            )}
+          </Campo>
         )}
 
         <FilasAcordeon filas={filas} abierto={abierto} onAbierto={setAbierto} malos={camposMalos} />

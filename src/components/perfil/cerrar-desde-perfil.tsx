@@ -1,11 +1,13 @@
 "use client";
 
+import { TITULO } from "@/lib/utilidades/estilos";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { CerrarDialog } from "@/components/responder/cerrar-dialog";
+import { CerrarDialog } from "@/components/compartidos/cerrar-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { type ReunionConRespuestas, conjuntos } from "@/lib/respuestas";
+import { pedir } from "@/lib/api";
+import { type ReunionConRespuestas, conjuntos } from "@/lib/reunion/respuestas";
 
 type Props = {
   slug: string;
@@ -25,15 +27,11 @@ export function CerrarDesdePerfil({ slug, onOpenChange, onCerrada }: Props) {
 
   useEffect(() => {
     let vigente = true;
-    fetch(`/api/events/${slug}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "No pudimos cargar la reunión.");
-        return (await res.json()) as ReunionConRespuestas;
-      })
+    pedir<ReunionConRespuestas>(`/api/events/${slug}`, { porDefecto: "No pudimos cargar la reunión." })
       .then((d) => vigente && setDatos(d))
       .catch((e: Error) => {
         if (!vigente) return;
-        toast.error(e instanceof TypeError ? "No pudimos conectarnos. Revisa tu internet e intenta de nuevo." : e.message);
+        toast.error(e.message);
         onOpenChange(false);
       });
     return () => {
@@ -47,7 +45,7 @@ export function CerrarDesdePerfil({ slug, onOpenChange, onCerrada }: Props) {
     return (
       <Dialog open onOpenChange={onOpenChange}>
         <DialogContent className="max-w-[calc(100%-3rem)] rounded-3xl p-5 text-center sm:max-w-xs" aria-busy="true">
-          <DialogTitle className="font-heading text-lg font-extrabold tracking-tight">Cargando…</DialogTitle>
+          <DialogTitle className={TITULO.medio}>Cargando…</DialogTitle>
           <DialogDescription>Estamos buscando las respuestas de la reunión.</DialogDescription>
         </DialogContent>
       </Dialog>

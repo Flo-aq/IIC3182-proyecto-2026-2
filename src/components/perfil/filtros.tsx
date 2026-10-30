@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, Check } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
-import { type Orden, TIPOS, type Tipo } from "@/lib/perfil";
+import { type Orden, TIPOS, type Tipo } from "@/lib/cuenta/perfil";
 
 type Props = {
   /** Cuántas reuniones hay de cada tipo (sin contar los tags elegidos). */

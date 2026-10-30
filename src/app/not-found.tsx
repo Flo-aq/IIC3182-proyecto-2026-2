@@ -1,15 +1,16 @@
+import { PAGINA } from "@/lib/utilidades/estilos";
 import Link from "next/link";
 
-import { BarraSuperior } from "@/components/barra-superior";
-import { Logo } from "@/components/logo";
+import { BarraSuperior } from "@/components/comunes/barra-superior";
+import { Logo } from "@/components/comunes/logo";
 import { buttonVariants } from "@/components/ui/button";
-import { BOTON } from "@/lib/botones";
+import { BOTON } from "@/lib/utilidades/botones";
 import { cn } from "@/lib/utils";
 
 /** Cuando el link no lleva a ninguna página (por ejemplo, una reunión que no existe o un link mal copiado). */
 export default function NotFound() {
   return (
-    <div className="mx-auto flex min-h-dvh w-full flex-col bg-background lg:max-w-[88rem]">
+    <div className={PAGINA}>
       <BarraSuperior />
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-4 px-6 pb-16 text-center">
         <Logo className="size-10 text-primary" />

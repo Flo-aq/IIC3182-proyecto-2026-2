@@ -1,8 +1,9 @@
+import { TITULO } from "@/lib/utilidades/estilos";
 import type { Metadata } from "next";
 
-import { GuiaAcordeon } from "@/components/guia-acordeon";
-import { PaginaAyuda } from "@/components/pagina-ayuda";
-import { TextoRico } from "@/components/texto-rico";
+import { GuiaAcordeon } from "@/components/ayuda/guia-acordeon";
+import { PaginaAyuda } from "@/components/ayuda/pagina-ayuda";
+import { TextoRico } from "@/components/ayuda/texto-rico";
 import { GUIAS } from "@/lib/ayuda/textos";
 import {
   type Item,
@@ -47,7 +48,7 @@ export default function Page() {
           >
             <h2
               id={`guia-${g.id}`}
-              className="font-heading text-lg font-extrabold tracking-tight"
+              className={TITULO.medio}
             >
               {g.vista}
             </h2>

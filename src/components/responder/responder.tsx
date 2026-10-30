@@ -1,118 +1,68 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Hand, Info, PaintBucket, Share2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
+import { PAD } from "@/lib/utilidades/estilos";
+import { ListaDePestanas, Pestana } from "@/components/comunes/pestanas";
+import { Hand, Info, PaintBucket, Share2 } from "lucide-react";
+import { useMemo, useState } from "react";
 
-import { AvisoSuperior, BarraSuperior } from "@/components/barra-superior";
+import { AvisoSuperior, BarraSuperior } from "@/components/comunes/barra-superior";
 import { Button } from "@/components/ui/button";
-import { BOTON } from "@/lib/botones";
-import { useEsPantallaAncha, useOrigen } from "@/lib/cliente";
-import {
-  type PersonaSet,
-  type ReunionConRespuestas,
-  type Columna,
-  columnasDe,
-  conjuntos,
-  esSemanal,
-  etiquetaRango,
-  mapaBloqueados,
-  semanasDe,
-} from "@/lib/respuestas";
-import { textoBloque } from "@/lib/cierre";
-import { useTieneLlave } from "@/lib/dueno";
-import { MAX_NOMBRE } from "@/lib/limites";
-import { useSesion } from "@/lib/sesion";
+import { BOTON } from "@/lib/utilidades/botones";
+import { useEsPantallaAncha, useOrigen } from "@/lib/utilidades/cliente";
+import { type ReunionConRespuestas, columnasDe, esSemanal, mapaBloqueados, semanasDe } from "@/lib/reunion/respuestas";
+import { textoBloque } from "@/lib/reunion/cierre";
 import { Compartir } from "./compartir";
-import { Confirmada } from "./confirmada";
+import { Confirmada } from "../compartidos/confirmada";
 import { DetallesDialog } from "./detalles-dialog";
-import { Grilla } from "./grilla";
+import { Grilla } from "./grilla/grilla";
 import { Acceso, MenuUsuario } from "./identidad";
-import { Leyenda } from "./leyenda";
-import { QuienPuede, QuienPuedeVacio } from "./quien-puede";
-
-const PAD = "pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]";
-const PESTANAS = ["Mi horario", "Respuestas", "Compartir"] as const;
-
-function Encabezado({ titulo, pista }: { titulo: string; pista?: string }) {
-  return (
-    <div className="flex shrink-0 items-baseline justify-between gap-2">
-      <h2 className="font-heading text-[0.95rem] font-extrabold tracking-tight">{titulo}</h2>
-      {pista && <span className="text-xs text-muted-foreground">{pista}</span>}
-    </div>
-  );
-}
-
-/** Flechas para moverse entre semanas (la reunión de más de 7 días se ve de a una semana). */
-function NavSemana({ columnas, semana, total, onSemana }: { columnas: Columna[]; semana: number; total: number; onSemana: (s: number) => void }) {
-  return (
-    <div className="flex shrink-0 items-center justify-between gap-2">
-      <Button type="button" variant="outline" size="icon" className={BOTON.icono} aria-label="Semana anterior" disabled={semana === 0} onClick={() => onSemana(semana - 1)}>
-        <ChevronLeft />
-      </Button>
-      <p className="min-w-0 text-center text-[0.8125rem] font-semibold">Semana del {etiquetaRango(columnas)}</p>
-      <Button type="button" variant="outline" size="icon" className={BOTON.icono} aria-label="Semana siguiente" disabled={semana >= total - 1} onClick={() => onSemana(semana + 1)}>
-        <ChevronRight />
-      </Button>
-    </div>
-  );
-}
+import { Leyenda } from "./grilla/leyenda";
+import { Encabezado, NavSemana, PESTANAS } from "./partes";
+import { PieGuardar } from "./pie-guardar";
+import { QuienPuede, QuienPuedeVacio } from "./grilla/quien-puede";
+import { useRefrescoAutomatico, useRespuesta } from "./use-respuesta";
+import { useTarjetaCompartir } from "./use-tarjeta-compartir";
 
 /** Pantalla de quien recibe el link: marca cuándo puede, mira al grupo y comparte el estado. */
-/** El nombre de la cuenta como se usa al responder: sin espacios de más y con el largo permitido. */
-const nombreDeCuenta = (n: string): string => n.replace(/\s+/g, " ").trim().slice(0, MAX_NOMBRE);
-
-/**
- * Con cuenta no se pide el nombre: si el servidor ya sabe que hay una (`cuentaNombre`), Mi horario parte lista desde la primera
- * pantalla, con la respuesta que ya había con ese nombre, si la había. Así no se ve un instante la pantalla de acceso.
- */
-function entradaInicial(datos: ReunionConRespuestas, cuentaNombre: string | null) {
-  if (cuentaNombre === null || datos.cerrada) return null;
-  const nombre = nombreDeCuenta(cuentaNombre);
-  const previa = datos.personas.find((p) => p.nombre.trim().toLowerCase() === nombre.toLowerCase());
-  return { nombre: previa?.nombre ?? nombre, retomada: previa?.nombre ?? null, disp: previa?.disp ?? null };
-}
-
 export function Responder({ datos, esDuenoCuenta, cuentaNombre }: { datos: ReunionConRespuestas; esDuenoCuenta: boolean; cuentaNombre: string | null }) {
   const { reunion: r, slug, cerrada } = datos;
-  // Cierra la reunión quien la creó: con su cuenta, desde el navegador donde la creó (guardó una llave) o entrando con el
-  // nombre que puso como organizador (se calcula más abajo, cuando ya se sabe con qué nombre se entró).
-  const tieneLlave = useTieneLlave(slug);
-  const [entrada] = useState(() => entradaInicial(datos, cuentaNombre));
+  const {
+    mias,
+    cambiar,
+    guardadas,
+    nombre,
+    setNombre,
+    clave,
+    setClave,
+    listo,
+    retomada,
+    esDueno,
+    guardando,
+    esClave,
+    hayCuenta,
+    existente,
+    hayClaves,
+    clavesLlenas,
+    personas,
+    marcados,
+    textoHoras,
+    sinCambios,
+    continuar,
+    cambiarNombre,
+    guardar,
+  } = useRespuesta(datos, esDuenoCuenta, cuentaNombre);
   const [pestana, setPestana] = useState(0);
-  const [mias, setMias] = useState<Set<string>>(() => new Set(entrada?.disp ?? []));
-  const [guardadas, setGuardadas] = useState<string[] | null>(entrada?.disp ?? null);
-  const [nombre, setNombre] = useState(entrada?.nombre ?? "");
-  /** Casilla "Soy integrante clave" de quien responde por primera vez. */
-  const [clave, setClave] = useState(false);
-  /** Ya dijiste quién eres: se muestra la grilla en vez de la pantalla de acceso. */
-  const [listo, setListo] = useState(entrada !== null);
-  /** Nombre de la respuesta que ya existía y se está editando (escribir el mismo nombre equivale a entrar). */
-  const [retomada, setRetomada] = useState<string | null>(entrada?.retomada ?? null);
-  const entroComoOrganizador = listo && Boolean(datos.organizador) && nombre.trim().toLowerCase() === datos.organizador?.trim().toLowerCase();
-  const esDueno = esDuenoCuenta || tieneLlave || entroComoOrganizador;
-  const [guardando, setGuardando] = useState(false);
-  /** Si lo que acabas de guardar quedó como integrante clave (hasta que llegue la lista actualizada del servidor). */
-  const [claveGuardada, setClaveGuardada] = useState(false);
-  const router = useRouter();
-  const { conCuenta, nombre: nombreCuenta } = useSesion();
-  /** Para entrar con el nombre de la cuenta una sola vez (si después se pulsa "Cambiar", no se vuelve a entrar sola). */
-  const entroSola = useRef(entrada !== null);
-  const hayCuenta = cuentaNombre !== null || conCuenta;
   const [verDetalles, setVerDetalles] = useState(false);
   const [semana, setSemana] = useState(0);
   const [fijado, setFijado] = useState<string | null>(null);
   const [visto, setVisto] = useState<string | null>(null);
   const [desbordaMia, setDesbordaMia] = useState(false);
   const [pintar, setPintar] = useState(false);
-  /** En pantalla ancha, Compartir es una tarjeta flotante que empieza cerrada. */
-  const [panelAbierto, setPanelAbierto] = useState(false);
-  const cajaCompartir = useRef<HTMLDivElement>(null);
-  const panelCompartir = useRef<HTMLElement>(null);
 
   // Desde lg se ven a la vez Mi horario y Respuestas, con Compartir flotante; antes, con pestañas.
   const escritorio = useEsPantallaAncha();
+  const { panelAbierto, setPanelAbierto, cajaCompartir, panelCompartir } = useTarjetaCompartir(escritorio);
+  useRefrescoAutomatico();
   const origen = useOrigen();
   const enlace = `${origen}/e/${slug}`;
 
@@ -121,169 +71,26 @@ export function Responder({ datos, esDuenoCuenta, cuentaNombre }: { datos: Reuni
   const semanas = semanasDe(r.dias);
   const columnas = columnasDe(r, semana);
 
-  const buscado = nombre.trim().toLowerCase();
-  const existente = buscado ? datos.personas.find((p) => p.nombre.trim().toLowerCase() === buscado) : undefined;
-
-  // Si edito una respuesta que ya existía, esa persona soy yo: no se cuenta dos veces ni ocupa un lugar clave extra.
-  const otros = useMemo(
-    () => datos.personas.filter((p) => p.nombre.trim().toLowerCase() !== retomada?.toLowerCase()),
-    [datos.personas, retomada],
-  );
-  const hayClaves = r.claves > 0;
-  const clavesLlenas = !hayClaves || otros.filter((p) => p.clave).length >= r.claves;
-  const propia = retomada ? datos.personas.find((p) => p.nombre.trim().toLowerCase() === retomada.toLowerCase()) : undefined;
-  const esClave = retomada ? (propia?.clave ?? claveGuardada) : clave && !clavesLlenas;
-
-  const personas: PersonaSet[] = useMemo(() => {
-    const demas = conjuntos(otros);
-    if (!guardadas) return demas;
-    const set = new Set(guardadas);
-    const yo: PersonaSet = { nombre: nombre.trim() || "Tú", clave: esClave, yo: true, puede: (dia, fila) => set.has(`${dia}|${fila}`) };
-    return [...demas, yo];
-  }, [otros, guardadas, nombre, esClave]);
-
-  const cambiar = (claves: string[], poner: boolean) =>
-    setMias((prev) => {
-      if (claves.every((k) => prev.has(k) === poner)) return prev;
-      const sig = new Set(prev);
-      for (const k of claves) {
-        if (poner) sig.add(k);
-        else sig.delete(k);
-      }
-      return sig;
-    });
-
-  const marcados = mias.size;
-  const horas = (marcados * r.bloqueMin) / 60;
-  const textoHoras = `${Number.isInteger(horas) ? horas : horas.toFixed(1).replace(".", ",")} h`;
-  const sinCambios = guardadas !== null && guardadas.length === mias.size && guardadas.every((k) => mias.has(k));
-
-  /** Entra a Mi horario con ese nombre; si ya había una respuesta con él, la carga para editarla. */
-  const entrarComo = (escrito: string) => {
-    const buscar = escrito.trim().toLowerCase();
-    const previa = datos.personas.find((p) => p.nombre.trim().toLowerCase() === buscar);
-    if (previa) {
-      setRetomada(previa.nombre);
-      setNombre(previa.nombre);
-      setMias(new Set(previa.disp));
-      setGuardadas(previa.disp);
-      toast.success(`Cargamos la respuesta de ${previa.nombre}`, { description: "Ya puedes cambiar tus horarios." });
-    } else {
-      setNombre(escrito.trim());
-      setRetomada(null);
-    }
-    setListo(true);
-  };
-
-  const continuar = () => entrarComo(nombre);
-
-  // Con cuenta no se pide el nombre: se entra solo con el de la cuenta (después se puede cambiar desde el menú de arriba).
-  useEffect(() => {
-    if (!conCuenta || entroSola.current || cerrada) return;
-    entroSola.current = true;
-    entrarComo(nombreDeCuenta(nombreCuenta));
-    // Solo cuando se sabe que hay cuenta.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conCuenta]);
-
-  /** Volver a la pantalla de acceso para cambiar el nombre (lo que marcaste de cero se mantiene). */
-  const cambiarNombre = () => {
-    if (retomada) {
-      setRetomada(null);
-      setNombre("");
-      setClave(false);
-      setMias(new Set());
-      setGuardadas(null);
-    }
-    setListo(false);
-  };
-
-  const guardar = async () => {
-    if (guardando) return;
-    setGuardando(true);
-    try {
-      const res = await fetch(`/api/events/${slug}/responses`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre: nombre.trim(), clave: esClave || clave, bloques: [...mias] }),
-      });
-      const cuerpo = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(cuerpo.error ?? "No pudimos guardar tus horarios.");
-      setGuardadas([...mias]);
-      // Desde ahora esta respuesta existe en el servidor: seguimos editándola y no se cuenta dos veces.
-      setRetomada(nombre.trim().replace(/\s+/g, " "));
-      setClaveGuardada(cuerpo.clave);
-      if (cuerpo.claveDenegada) {
-        toast.warning("Guardado ✓, pero ya no quedaban lugares de integrante clave", { description: "Quedaste como participante normal." });
-      } else {
-        toast.success("Guardado ✓", { description: "Vuelve a este link y escribe el mismo nombre para cambiar tus horarios." });
-      }
-      router.refresh();
-    } catch (e) {
-      toast.error(e instanceof TypeError ? "No pudimos conectarnos. Revisa tu internet e intenta de nuevo." : (e as Error).message);
-    } finally {
-      setGuardando(false);
-    }
-  };
-
-  // Las respuestas de los demás llegan solas: se actualizan al volver a la pestaña y cada medio minuto.
-  useEffect(() => {
-    const actualizar = () => document.visibilityState === "visible" && router.refresh();
-    const cada = setInterval(actualizar, 30_000);
-    document.addEventListener("visibilitychange", actualizar);
-    return () => {
-      clearInterval(cada);
-      document.removeEventListener("visibilitychange", actualizar);
-    };
-  }, [router]);
-
   const ver = fijado ?? visto;
 
   const verMia = escritorio || pestana === 0;
   const verRespuestas = escritorio || pestana === 1;
   const verCompartir = !escritorio && pestana === 2;
 
-  // La tarjeta de Compartir se cierra con Escape o al hacer clic afuera (salvo que haya un diálogo abierto, como el de Notificarme).
-  useEffect(() => {
-    if (!escritorio || !panelAbierto) return;
-    panelCompartir.current?.focus();
-    const hayDialogo = () => document.querySelector('[role="dialog"]') !== null;
-    const alPulsar = (e: PointerEvent) => {
-      if (hayDialogo() || cajaCompartir.current?.contains(e.target as Node)) return;
-      setPanelAbierto(false);
-    };
-    const alTeclear = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || hayDialogo()) return;
-      setPanelAbierto(false);
-      cajaCompartir.current?.querySelector("button")?.focus();
-    };
-    document.addEventListener("pointerdown", alPulsar);
-    document.addEventListener("keydown", alTeclear);
-    return () => {
-      document.removeEventListener("pointerdown", alPulsar);
-      document.removeEventListener("keydown", alTeclear);
-    };
-  }, [escritorio, panelAbierto]);
-
-  const pie: ReactNode = (
-    <>
-      {/* Con cuenta no se pasa por la pantalla de acceso, así que aquí se declara si eres integrante clave (solo la primera vez). */}
-      {hayCuenta && hayClaves && !clavesLlenas && !retomada && (
-        <label className="mb-2 flex cursor-pointer items-center gap-2.5 rounded-2xl border px-3.5 py-2.5 text-sm">
-          <input type="checkbox" checked={clave} className="size-5 shrink-0 accent-primary" onChange={(e) => setClave(e.target.checked)} />
-          <span>
-            <b className="font-semibold">Soy integrante clave</b>
-            <span className="block text-xs text-muted-foreground">Solo si la reunión depende de ti.</span>
-          </span>
-        </label>
-      )}
-      <p className="mb-1.5 text-center text-xs text-muted-foreground">
-        {marcados} {marcados === 1 ? "bloque" : "bloques"} de {r.bloqueMin} min · {textoHoras}
-      </p>
-      <Button className={`${BOTON.principal} w-full`} disabled={(marcados === 0 && guardadas === null) || guardando} onClick={guardar}>
-        {guardando ? "Guardando…" : guardadas === null ? "Guardar mis horarios" : sinCambios ? "Guardado ✓" : "Guardar cambios"}
-      </Button>
-    </>
+  const pie = (
+    <PieGuardar
+      // Con cuenta no se pasa por la pantalla de acceso, así que aquí se declara si eres integrante clave (solo la primera vez).
+      pideClave={hayCuenta && hayClaves && !clavesLlenas && !retomada}
+      clave={clave}
+      onClave={setClave}
+      marcados={marcados}
+      bloqueMin={r.bloqueMin}
+      textoHoras={textoHoras}
+      sinGuardar={guardadas === null}
+      sinCambios={sinCambios}
+      guardando={guardando}
+      onGuardar={guardar}
+    />
   );
 
   const columnasEscritorio = "grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]";
@@ -342,14 +149,12 @@ export function Responder({ datos, esDuenoCuenta, cuentaNombre }: { datos: Reuni
       </div>
 
       {!escritorio && (
-        <div role="tablist" aria-label="Secciones" className={`${PAD} shrink-0 py-1`}>
+        <ListaDePestanas aria-label="Secciones" className={`${PAD} shrink-0 py-1`}>
           <div className="flex gap-1 rounded-full bg-muted p-1">
             {PESTANAS.map((t, i) => (
-              <button
+              <Pestana
                 key={t}
-                type="button"
-                role="tab"
-                aria-selected={pestana === i}
+                seleccionada={pestana === i}
                 className={`h-9 flex-1 rounded-full text-[0.8125rem] font-semibold ${pestana === i ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
                 onClick={() => {
                   setPestana(i);
@@ -358,10 +163,10 @@ export function Responder({ datos, esDuenoCuenta, cuentaNombre }: { datos: Reuni
                 }}
               >
                 {t}
-              </button>
+              </Pestana>
             ))}
           </div>
-        </div>
+        </ListaDePestanas>
       )}
 
       <main className={`relative flex min-h-0 flex-1 flex-col gap-1.5 ${PAD} ${escritorio ? "pt-2 pb-4" : ""}`}>

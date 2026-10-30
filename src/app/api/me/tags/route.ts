@@ -1,5 +1,5 @@
 import { exigirUsuario, listarTags } from "@/server/cuenta";
-import { respuestaDeError } from "@/server/errores";
+import { respuestaDeError } from "@/server/comun/errores";
 
 /** Los tags de la cuenta, con en cuántas reuniones y plantillas está cada uno. */
 export async function GET() {

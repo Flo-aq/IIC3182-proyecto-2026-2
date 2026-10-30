@@ -1,8 +1,9 @@
+import { ListaBloqueos } from "@/components/compartidos/lista-bloqueos";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { BOTON } from "@/lib/botones";
+import { BOTON } from "@/lib/utilidades/botones";
 import { type Reunion, resumenDias, textoDiasRegla, textoHorario, zonaCorta } from "@/lib/reunion";
-import type { Persona } from "@/lib/respuestas";
+import type { Persona } from "@/lib/reunion/respuestas";
 
 type Props = { open: boolean; onOpenChange: (open: boolean) => void; reunion: Reunion; personas: Persona[] };
 
@@ -33,16 +34,7 @@ export function DetallesDialog({ open, onOpenChange, reunion: r, personas }: Pro
             <dt className="text-xs text-muted-foreground">Bloqueados por quien creó la reunión</dt>
             {r.bloqueos.length ? (
               <dd>
-                <ul className="mt-1 flex flex-col gap-1.5">
-                  {r.bloqueos.map((b) => (
-                    <li key={b.id} className="flex flex-wrap items-baseline justify-between gap-x-3 rounded-xl bg-muted px-3 py-2">
-                      <b className="font-semibold">
-                        {b.desde} a {b.hasta}
-                      </b>
-                      <span className="text-muted-foreground">{textoDiasRegla(b, r.dias)}</span>
-                    </li>
-                  ))}
-                </ul>
+                <ListaBloqueos bloqueos={r.bloqueos} dias={(b) => textoDiasRegla(b, r.dias)} className="mt-1" />
               </dd>
             ) : (
               <dd className="font-semibold">Ninguno</dd>

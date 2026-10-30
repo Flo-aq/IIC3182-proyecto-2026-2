@@ -1,5 +1,5 @@
 import { procesarAvisos } from "@/server/avisos";
-import { respuestaDeError } from "@/server/errores";
+import { respuestaDeError } from "@/server/comun/errores";
 
 /**
  * Lo llama un temporizador cada pocos minutos (el workflow `avisos.yml` de GitHub Actions; Vercel además lo llama una vez al día):

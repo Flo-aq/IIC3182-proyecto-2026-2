@@ -1,8 +1,9 @@
+import { TITULO } from "@/lib/utilidades/estilos";
 import { ChevronDown } from "lucide-react";
 import type { Metadata } from "next";
 
-import { PaginaAyuda } from "@/components/pagina-ayuda";
-import { TextoRico } from "@/components/texto-rico";
+import { PaginaAyuda } from "@/components/ayuda/pagina-ayuda";
+import { TextoRico } from "@/components/ayuda/texto-rico";
 import { GRUPOS_PREGUNTAS } from "@/lib/ayuda/textos";
 
 export const metadata: Metadata = { title: "FAQ · WeMeet" };
@@ -26,7 +27,7 @@ export default function Page() {
           >
             <h2
               id={`faq-${g.id}`}
-              className="font-heading text-lg font-extrabold tracking-tight"
+              className={TITULO.medio}
             >
               {g.vista}
             </h2>

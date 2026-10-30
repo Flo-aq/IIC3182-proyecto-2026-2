@@ -1,5 +1,8 @@
 "use client";
 
+import { Vacio } from "@/components/comunes/vacio";
+import { TITULO } from "@/lib/utilidades/estilos";
+import { Badge } from "@/components/ui/badge";
 import { Copy, Pencil, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { type Dispatch, type SetStateAction, useState } from "react";
@@ -10,10 +13,10 @@ import {
   actualizarPlantilla as actualizarPlantillaApi,
   borrarPlantilla as borrarPlantillaApi,
   crearPlantilla as crearPlantillaApi,
-} from "@/lib/api-cuenta";
+} from "@/lib/api/cuenta";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { BOTON } from "@/lib/botones";
-import { type PlantillaDeCuenta, detalleDe } from "@/lib/plantillas";
+import { BOTON } from "@/lib/utilidades/botones";
+import { type PlantillaDeCuenta, detalleDe } from "@/lib/cuenta/plantillas";
 import type { Plantilla } from "@/lib/reunion";
 import { cn } from "@/lib/utils";
 import { PlantillaDialog } from "./plantilla-dialog";
@@ -111,7 +114,7 @@ export function PlantillasPerfil({ plantillas, onCambiar, tagsDeLaCuenta }: Prop
   return (
     <section aria-labelledby="titulo-plantillas" className="mt-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 id="titulo-plantillas" className="font-heading text-lg font-extrabold tracking-tight">
+        <h2 id="titulo-plantillas" className={TITULO.medio}>
           Tus plantillas
         </h2>
         <Button type="button" className={BOTON.confirmar} aria-haspopup="dialog" onClick={() => setEditor({ id: "nueva", clave: Date.now() })}>
@@ -152,9 +155,9 @@ export function PlantillasPerfil({ plantillas, onCambiar, tagsDeLaCuenta }: Prop
               {p.tags.length > 0 && (
                 <ul aria-label="Tags" className="mt-1.5 flex flex-wrap gap-1.5">
                   {p.tags.map((t) => (
-                    <li key={t} className="max-w-full truncate rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
+                    <Badge key={t} render={<li />} className="max-w-full truncate">
                       {t}
-                    </li>
+                    </Badge>
                   ))}
                 </ul>
               )}
@@ -162,7 +165,7 @@ export function PlantillasPerfil({ plantillas, onCambiar, tagsDeLaCuenta }: Prop
           ))}
         </ul>
       ) : (
-        <p className="mt-4 rounded-2xl border-[1.5px] border-dashed p-5 text-center text-sm text-muted-foreground">Todavía no tienes plantillas. Crea una con “Nueva plantilla”.</p>
+        <Vacio>Todavía no tienes plantillas. Crea una con “Nueva plantilla”.</Vacio>
       )}
 
       {editor && (

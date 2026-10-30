@@ -2,8 +2,8 @@ import { after } from "next/server";
 
 import { usuarioActual } from "@/lib/supabase/servidor";
 import { revisarAvisosPorCantidad } from "@/server/avisos";
-import { leerJson, respuestaDeError } from "@/server/errores";
-import { limitar } from "@/server/limite";
+import { leerJson, respuestaDeError } from "@/server/comun/errores";
+import { limitar } from "@/server/comun/limite";
 import { guardarRespuesta } from "@/server/reuniones";
 
 /** Guarda (o reemplaza) la respuesta de una persona, identificada por su nombre. Con sesión, queda ligada a su cuenta. */
