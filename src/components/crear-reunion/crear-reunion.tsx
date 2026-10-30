@@ -223,25 +223,6 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
 
       <AreaScroll className="min-h-0 flex-1" bordes={false}>
       <main className={`flex flex-col gap-3 pt-3 pb-2 ${PAD}`}>
-        <SeccionPlantilla
-          conCuenta={conCuenta}
-          hayPropias={propias.length > 0}
-          usar={usarPlantilla}
-          onUsar={(v) => {
-            setUsarPlantilla(v);
-            if (!v) setPlantilla(-1);
-          }}
-          plantillas={plantillasDisponibles}
-          elegida={plantilla}
-          onElegir={(i) => {
-            setPlantilla(i);
-            const elegida = plantillasDisponibles[i];
-            setR((prev) => aplicarPlantilla(prev, elegida, nuevoId));
-            // Las plantillas propias traen sus tags; las de WeMeet no cambian los que ya elegiste.
-            if (elegida.tags) setEtiquetas(elegida.tags);
-          }}
-        />
-
         <Campo id="nombre" etiqueta="Nombre de la reunión" obligatorio errorAlLado error={camposMalos.has("nombre") ? "Escribe un nombre" : undefined}>
           {(campo) => (
             <div className="relative">
@@ -282,6 +263,25 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
             )}
           </Campo>
         )}
+
+        <SeccionPlantilla
+          conCuenta={conCuenta}
+          hayPropias={propias.length > 0}
+          usar={usarPlantilla}
+          onUsar={(v) => {
+            setUsarPlantilla(v);
+            if (!v) setPlantilla(-1);
+          }}
+          plantillas={plantillasDisponibles}
+          elegida={plantilla}
+          onElegir={(i) => {
+            setPlantilla(i);
+            const elegida = plantillasDisponibles[i];
+            setR((prev) => aplicarPlantilla(prev, elegida, nuevoId));
+            // Las plantillas propias traen sus tags; las de WeMeet no cambian los que ya elegiste.
+            if (elegida.tags) setEtiquetas(elegida.tags);
+          }}
+        />
 
         <FilasAcordeon filas={filas} abierto={abierto} onAbierto={setAbierto} malos={camposMalos} />
       </main>
