@@ -5,7 +5,7 @@ Los flujos de usuario con sus diagramas están en `flujos-de-usuario.md`; las de
 
 ## Estado de la implementación
 
-Todo lo de la entrega está hecho, conectado a Supabase y desplegado en Vercel (https://iic-3182-proyecto-2026-2.vercel.app).
+Todo lo de la entrega está hecho, conectado a Supabase y desplegado en Vercel (https://we-meet-project.vercel.app).
 
 | Parte | Estado |
 |---|---|
