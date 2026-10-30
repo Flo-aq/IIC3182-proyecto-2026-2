@@ -1,6 +1,6 @@
 import { usuarioActual } from "@/lib/supabase/servidor";
-import { leerJson, respuestaDeError } from "@/server/errores";
-import { limitar } from "@/server/limite";
+import { leerJson, respuestaDeError } from "@/server/comun/errores";
+import { limitar } from "@/server/comun/limite";
 import { cerrarReunion } from "@/server/reuniones";
 
 /** Cierra la reunión con el horario elegido. Solo su creador: por su cuenta o con la llave (`tokenDueno`) que se guardó al crearla. */

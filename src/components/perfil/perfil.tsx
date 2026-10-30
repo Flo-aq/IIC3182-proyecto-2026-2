@@ -1,28 +1,32 @@
 "use client";
 
+import { Vacio } from "@/components/comunes/vacio";
+import { PAD, TITULO } from "@/lib/utilidades/estilos";
+import { ListaDePestanas, Pestana } from "@/components/comunes/pestanas";
+import { copiarConAviso } from "@/lib/utilidades/portapapeles";
+import { cantidad } from "@/lib/utilidades/plural";
 import { Pencil, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { BarraSuperior } from "@/components/barra-superior";
-import { NotificarDialog, type Aviso, textoAviso } from "@/components/responder/notificar-dialog";
+import { BarraSuperior } from "@/components/comunes/barra-superior";
+import { NotificarDialog, type Aviso, textoAviso } from "@/components/compartidos/notificar-dialog";
 import { Button } from "@/components/ui/button";
-import { agregarTag as agregarTagApi, quitarTag as quitarTagApi } from "@/lib/api-cuenta";
-import { pedirAviso, quitarAviso as quitarAvisoApi } from "@/lib/api-avisos";
-import { BOTON } from "@/lib/botones";
+import { agregarTag as agregarTagApi, quitarTag as quitarTagApi } from "@/lib/api/cuenta";
+import { pedirAviso, quitarAviso as quitarAvisoApi } from "@/lib/api/avisos";
+import { BOTON } from "@/lib/utilidades/botones";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useEsPantallaAncha, useOrigen } from "@/lib/cliente";
-import type { PlantillaDeCuenta } from "@/lib/plantillas";
-import { avisarTopeReunion, avisarTopeTotal } from "@/lib/avisos-tags";
-import { type ReunionDePerfil, MAX_TAGS_POR_REUNION, MAX_TAGS_TOTALES, ORDEN_INICIAL, type Orden, type Tipo, buscarTag, filtrar, ordenar, todosLosTags } from "@/lib/perfil";
+import { useEsPantallaAncha, useOrigen } from "@/lib/utilidades/cliente";
+import type { PlantillaDeCuenta } from "@/lib/cuenta/plantillas";
+import { avisarTopeReunion, avisarTopeTotal } from "@/lib/cuenta/avisos-tags";
+import { type ReunionDePerfil, MAX_TAGS_POR_REUNION, MAX_TAGS_TOTALES, ORDEN_INICIAL, type Orden, type Tipo, buscarTag, filtrar, ordenar, todosLosTags } from "@/lib/cuenta/perfil";
 import { cn } from "@/lib/utils";
 import { CerrarDesdePerfil } from "./cerrar-desde-perfil";
 import { FilaReunion } from "./fila-reunion";
 import { FiltrosHoja, FiltrosLateral } from "./filtros";
 import { PlantillasPerfil } from "./plantillas-perfil";
 
-const PAD = "pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]";
 
 /**
  * El perfil: las reuniones que creaste y las que respondiste, con sus tags.
@@ -101,14 +105,10 @@ export function Perfil({ reunionesIniciales, plantillasIniciales }: { reunionesI
   };
 
   const copiar = async (r: ReunionDePerfil) => {
-    try {
-      await navigator.clipboard.writeText(`${origen}/e/${r.slug}`);
-      toast.success("Link copiado");
-      setCopiado(r.slug);
-      setTimeout(() => setCopiado((c) => (c === r.slug ? null : c)), 1600);
-    } catch {
-      toast.error("No se pudo copiar. Cópialo desde la barra de direcciones de la reunión.");
-    }
+    const ok = await copiarConAviso(`${origen}/e/${r.slug}`, { exito: "Link copiado", fallo: "No se pudo copiar. Cópialo desde la barra de direcciones de la reunión." });
+    if (!ok) return;
+    setCopiado(r.slug);
+    setTimeout(() => setCopiado((c) => (c === r.slug ? null : c)), 1600);
   };
 
   const reunionDelAviso = reuniones.find((r) => r.slug === avisoDe) ?? null;
@@ -160,14 +160,14 @@ export function Perfil({ reunionesIniciales, plantillasIniciales }: { reunionesI
       ))}
     </ul>
   ) : sinReuniones ? (
-    <div className="mt-4 rounded-2xl border-[1.5px] border-dashed p-5 text-center text-sm text-muted-foreground">
+    <Vacio>
       <p>Todavía no tienes reuniones. Las que crees o respondas con tu cuenta aparecerán aquí.</p>
       <Link href="/" className="mt-2 inline-block font-bold text-primary hover:underline">
         Crear una reunión
       </Link>
-    </div>
+    </Vacio>
   ) : (
-    <p className="mt-4 rounded-2xl border-[1.5px] border-dashed p-5 text-center text-sm text-muted-foreground">Ninguna reunión coincide. Quita un filtro para ver más.</p>
+    <Vacio>Ninguna reunión coincide. Quita un filtro para ver más.</Vacio>
   );
 
   return (
@@ -177,25 +177,23 @@ export function Perfil({ reunionesIniciales, plantillasIniciales }: { reunionesI
       <main className={`mx-auto flex w-full max-w-2xl flex-col lg:max-w-none ${PAD}`}>
         <h1 className="mt-2 font-heading text-xl font-extrabold tracking-tight">Tu perfil</h1>
 
-        <div role="tablist" aria-label="Secciones del perfil" className="mt-2 flex gap-5 border-b">
+        <ListaDePestanas aria-label="Secciones del perfil" className="mt-2 flex gap-5 border-b">
           {(
             [
               ["reuniones", "Reuniones", reuniones.length],
               ["plantillas", "Plantillas", plantillas.length],
             ] as const
           ).map(([id, texto, n]) => (
-            <button
+            <Pestana
               key={id}
-              type="button"
-              role="tab"
-              aria-selected={vista === id}
+              seleccionada={vista === id}
               onClick={() => setVista(id)}
               className={cn("-mb-px border-b-[3px] border-transparent py-2.5 text-sm font-bold text-muted-foreground", vista === id && "border-primary text-foreground")}
             >
               {texto} <span className="font-semibold text-muted-foreground">{n}</span>
-            </button>
+            </Pestana>
           ))}
-        </div>
+        </ListaDePestanas>
 
         {vista === "plantillas" ? (
           <PlantillasPerfil plantillas={plantillas} onCambiar={setPlantillas} tagsDeLaCuenta={tagsDeLaCuenta} />
@@ -238,7 +236,7 @@ export function Perfil({ reunionesIniciales, plantillasIniciales }: { reunionesI
             className="top-auto bottom-0 left-0 max-h-[88dvh] w-full max-w-full translate-x-0 translate-y-0 gap-4 overflow-y-auto rounded-t-3xl rounded-b-none p-4 pb-[max(1rem,env(safe-area-inset-bottom))] data-open:slide-in-from-bottom data-open:zoom-in-100 data-closed:slide-out-to-bottom data-closed:zoom-out-100 sm:max-w-full"
           >
             <DialogHeader className="flex-row items-center justify-between gap-2">
-              <DialogTitle className="font-heading text-lg font-extrabold tracking-tight">Filtros</DialogTitle>
+              <DialogTitle className={TITULO.medio}>Filtros</DialogTitle>
               <Button type="button" variant="ghost" className={BOTON.texto} onClick={limpiar}>
                 Limpiar
               </Button>
@@ -246,7 +244,7 @@ export function Perfil({ reunionesIniciales, plantillasIniciales }: { reunionesI
             <DialogDescription className="sr-only">Elige qué reuniones ver, cómo ordenarlas y por qué tags.</DialogDescription>
             <FiltrosHoja {...propsFiltros} />
             <Button type="button" className={BOTON.principal} onClick={() => setHoja(false)}>
-              Ver {visibles.length} {visibles.length === 1 ? "reunión" : "reuniones"}
+              Ver {cantidad(visibles.length, "reunión", "reuniones")}
             </Button>
           </DialogContent>
         </Dialog>

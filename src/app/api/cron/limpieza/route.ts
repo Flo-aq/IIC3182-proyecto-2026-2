@@ -1,5 +1,5 @@
-import { db } from "@/server/db";
-import { respuestaDeError } from "@/server/errores";
+import { db } from "@/server/comun/db";
+import { respuestaDeError } from "@/server/comun/errores";
 
 /**
  * Cron diario de Vercel: borra las reuniones sin respuestas hace 2 meses.

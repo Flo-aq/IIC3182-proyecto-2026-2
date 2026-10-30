@@ -1,16 +1,18 @@
 "use client";
 
+import { CAMPO_TEXTO, TITULO } from "@/lib/utilidades/estilos";
 import { LogIn, User } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
+import { Campo } from "@/components/comunes/campo";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { BOTON } from "@/lib/botones";
-import { urlDeLogin, useSesion } from "@/lib/sesion";
+import { BOTON } from "@/lib/utilidades/botones";
+import { urlDeLogin, useSesion } from "@/lib/cuenta/sesion";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { PuntoClave } from "./punto-clave";
+import { PuntoClave } from "./grilla/punto-clave";
 
 type AccesoProps = {
   nombre: string;
@@ -53,32 +55,25 @@ export function Acceso({ nombre, onNombre, clave, onClave, onContinuar, hayClave
           }}
         >
           <div className="text-center">
-            <h2 className="font-heading text-xl font-extrabold tracking-tight">Escribe tu nombre</h2>
+            <h2 className={TITULO.grande}>Escribe tu nombre</h2>
             <p className="mt-1 text-[0.8125rem] text-muted-foreground">
               Eso es todo: no necesitas cuenta. Si ya habías respondido, escribe el mismo nombre para editar tus horarios.
             </p>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor={idNombre} className="text-sm font-bold">
-              Tu nombre <span aria-hidden="true" className="font-extrabold text-destructive">*</span>
-            </label>
-            <Input
-              id={idNombre}
-              ref={campo}
-              value={nombre}
-              maxLength={40}
-              autoComplete="off"
-              aria-required="true"
-              placeholder="Ej: Camila"
-              className="h-12 rounded-2xl border-[1.5px] px-3.5 text-base"
-              onChange={(e) => onNombre(e.target.value)}
-            />
-            {yaRespondio && (
-              <p role="status" className="text-[0.8125rem] font-medium text-primary">
-                Ya hay una respuesta con ese nombre: se cargará para que la edites.
-              </p>
+          <Campo id={idNombre} etiqueta="Tu nombre" obligatorio nota={yaRespondio ? "Ya hay una respuesta con ese nombre: se cargará para que la edites." : undefined}>
+            {(atributos) => (
+              <Input
+                {...atributos}
+                ref={campo}
+                value={nombre}
+                maxLength={40}
+                autoComplete="off"
+                placeholder="Ej: Camila"
+                className={CAMPO_TEXTO}
+                onChange={(e) => onNombre(e.target.value)}
+              />
             )}
-          </div>
+          </Campo>
           {hayClaves && !yaRespondio && (
             <label htmlFor={idClave} className={`flex items-start gap-3 rounded-2xl border px-3.5 py-3 ${clavesLlenas ? "opacity-60" : "cursor-pointer"}`}>
               <input

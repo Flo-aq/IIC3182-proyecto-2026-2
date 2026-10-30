@@ -1,5 +1,5 @@
 import { crearPlantilla, exigirUsuario, listarPlantillas } from "@/server/cuenta";
-import { leerJson, respuestaDeError } from "@/server/errores";
+import { leerJson, respuestaDeError } from "@/server/comun/errores";
 
 /** Las plantillas de la cuenta, las más nuevas primero. */
 export async function GET() {

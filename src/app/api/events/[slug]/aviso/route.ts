@@ -1,6 +1,6 @@
 import { usuarioActual } from "@/lib/supabase/servidor";
 import { avisoDeLaCuenta, avisoPorLlave } from "@/server/avisos";
-import { respuestaDeError } from "@/server/errores";
+import { respuestaDeError } from "@/server/comun/errores";
 
 /**
  * El aviso pendiente de quien pregunta en esta reunión, o `null`: el de su cuenta (con sesión) o, sin cuenta, el que pidió desde

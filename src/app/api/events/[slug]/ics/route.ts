@@ -1,6 +1,6 @@
-import { instanteDeBloque } from "@/lib/calendario";
-import { respuestaDeError } from "@/server/errores";
-import { crearIcs } from "@/server/ics";
+import { instanteDeBloque } from "@/lib/reunion/calendario";
+import { respuestaDeError } from "@/server/comun/errores";
+import { crearIcs } from "@/server/reuniones/ics";
 import { leerReunion } from "@/server/reuniones";
 
 /** El .ics de la reunión confirmada, para agregarla al calendario. `404` si no existe o todavía no se cierra. */

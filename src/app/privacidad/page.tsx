@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { PaginaLegal } from "@/components/pagina-legal";
+import { PaginaLegal } from "@/components/comunes/pagina-legal";
 
 export const metadata: Metadata = { title: "Política de privacidad · WeMeet" };
 

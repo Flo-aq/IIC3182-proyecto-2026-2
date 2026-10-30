@@ -1,6 +1,6 @@
 import { usuarioActual } from "@/lib/supabase/servidor";
 import { quitarAviso } from "@/server/avisos";
-import { respuestaDeError } from "@/server/errores";
+import { respuestaDeError } from "@/server/comun/errores";
 
 /** Quita un aviso pendiente. Su dueño lo hace con su sesión; quien lo pidió sin cuenta, con la llave (`?token=`) que recibió al pedirlo. */
 export async function DELETE(req: Request, ctx: RouteContext<"/api/notifications/[id]">) {

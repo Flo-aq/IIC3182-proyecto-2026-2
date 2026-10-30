@@ -1,4 +1,4 @@
-import { respuestaDeError } from "@/server/errores";
+import { respuestaDeError } from "@/server/comun/errores";
 import { leerReunion, paraElNavegador } from "@/server/reuniones";
 
 /** La reunión con las respuestas de todos. */

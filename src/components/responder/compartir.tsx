@@ -1,31 +1,26 @@
 "use client";
 
+import { cantidad, plural } from "@/lib/utilidades/plural";
 import { Bell, BellOff, CalendarCheck, Copy } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { avisoPendiente, borrarAvisoLocal, guardarAvisoLocal, leerAvisoLocal, pedirAviso, quitarAviso } from "@/lib/api-avisos";
-import { BOTON } from "@/lib/botones";
+import { avisoPendiente, borrarAvisoLocal, guardarAvisoLocal, leerAvisoLocal, pedirAviso, quitarAviso } from "@/lib/api/avisos";
+import { BOTON } from "@/lib/utilidades/botones";
+import { copiarConAviso } from "@/lib/utilidades/portapapeles";
 import type { Reunion } from "@/lib/reunion";
-import { type PersonaSet, textoResumen } from "@/lib/respuestas";
+import { type PersonaSet, textoResumen } from "@/lib/reunion/respuestas";
 import { cn } from "@/lib/utils";
-import { CerrarDialog } from "./cerrar-dialog";
-import { Confirmada } from "./confirmada";
-import { type Aviso, NotificarDialog, textoAviso } from "./notificar-dialog";
-import { PuntoClave } from "./punto-clave";
+import { CerrarDialog } from "../compartidos/cerrar-dialog";
+import { Confirmada } from "../compartidos/confirmada";
+import { type Aviso, NotificarDialog, textoAviso } from "../compartidos/notificar-dialog";
+import { PuntoClave } from "./grilla/punto-clave";
 
 /** Alto de dos filas de burbujas: 2 × 1.875rem + el espacio entre ellas (0.375rem), en píxeles. */
 const DOS_LINEAS_PX = 66;
 
-async function copiar(texto: string, aviso: string) {
-  try {
-    await navigator.clipboard.writeText(texto);
-    toast.success(aviso);
-  } catch {
-    toast.error("No se pudo copiar. Selecciona el texto y cópialo a mano.");
-  }
-}
+const copiar = (texto: string, aviso: string) => copiarConAviso(texto, { exito: aviso });
 
 type Props = {
   slug: string;
@@ -34,7 +29,7 @@ type Props = {
   enlace: string;
   /** El bloque elegido si la reunión ya se cerró. */
   cerrada: string | null;
-  /** Quien creó la reunión puede cerrarla y reabrirla desde aquí. */
+  /** Quien creó la reunión (con cuenta, con su llave o con el nombre de organizador) puede cerrarla desde aquí. */
   esDueno: boolean;
   /** El nombre con que se entró a la reunión (se manda al cerrar, por si es el del organizador). */
   nombre?: string;
@@ -107,7 +102,7 @@ export function Compartir({ slug, reunion: r, personas, enlace, cerrada, esDueno
         <div className="mb-2 flex items-baseline justify-between">
           <h2 className="text-[0.95rem] font-bold">Respuestas</h2>
           <span className="text-[0.8125rem] text-muted-foreground">
-            {personas.length} {personas.length === 1 ? "persona" : "personas"}
+            {cantidad(personas.length, "persona", "personas")}
           </span>
         </div>
         <ul ref={lista} id={idLista} className={`flex flex-wrap gap-1.5 ${abierta ? "" : "max-h-[4.125rem] overflow-hidden"}`}>
@@ -129,7 +124,7 @@ export function Compartir({ slug, reunion: r, personas, enlace, cerrada, esDueno
         <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
           {r.claves > 0 && <PuntoClave />}
           {r.claves
-            ? `${claves.length} de ${r.claves} integrantes clave ${claves.length === 1 ? "ha respondido" : "han respondido"}.`
+            ? `${claves.length} de ${r.claves} integrantes clave ${plural(claves.length, "ha respondido", "han respondido")}.`
             : "Esta reunión no tiene integrantes clave."}
         </p>
       </section>

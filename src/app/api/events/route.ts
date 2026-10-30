@@ -1,6 +1,6 @@
 import { usuarioActual } from "@/lib/supabase/servidor";
-import { leerJson, respuestaDeError } from "@/server/errores";
-import { limitar } from "@/server/limite";
+import { leerJson, respuestaDeError } from "@/server/comun/errores";
+import { limitar } from "@/server/comun/limite";
 import { crearReunion } from "@/server/reuniones";
 
 /** Crea una reunión. Devuelve el slug del link y la llave del creador. Con sesión, la reunión queda en el perfil de quien la crea. */

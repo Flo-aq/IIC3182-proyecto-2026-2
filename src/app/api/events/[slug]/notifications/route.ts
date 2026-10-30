@@ -1,7 +1,7 @@
 import { usuarioActual } from "@/lib/supabase/servidor";
 import { crearAviso } from "@/server/avisos";
-import { leerJson, respuestaDeError } from "@/server/errores";
-import { limitar } from "@/server/limite";
+import { leerJson, respuestaDeError } from "@/server/comun/errores";
+import { limitar } from "@/server/comun/limite";
 
 /**
  * Pide un aviso por correo para la reunión: `{ tipo: "personas", personas, correo }`, `{ tipo: "fecha", fecha, correo }` o

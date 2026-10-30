@@ -1,5 +1,5 @@
 import { usuarioActual } from "@/lib/supabase/servidor";
-import { leerJson, respuestaDeError } from "@/server/errores";
+import { leerJson, respuestaDeError } from "@/server/comun/errores";
 import { reabrirReunion } from "@/server/reuniones";
 
 /** Reabre una reunión cerrada. Solo su creador (cuenta o llave). */

@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-import { cargarPlantillas, cargarTags } from "@/lib/api-cuenta";
-import type { PlantillaDeCuenta } from "@/lib/plantillas";
-import { useSesion } from "@/lib/sesion";
+import { cargarPlantillas, cargarTags } from "@/lib/api/cuenta";
+import type { PlantillaDeCuenta } from "@/lib/cuenta/plantillas";
+import { useSesion } from "@/lib/cuenta/sesion";
 import { CrearReunion } from "./crear-reunion";
 
 type Datos = { plantillas: PlantillaDeCuenta[]; tags: string[] };

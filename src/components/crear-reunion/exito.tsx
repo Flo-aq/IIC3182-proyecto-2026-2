@@ -1,15 +1,18 @@
 "use client";
 
+import { PAGINA } from "@/lib/utilidades/estilos";
+import { cantidad } from "@/lib/utilidades/plural";
 import { Check, Copy } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { BarraSuperior } from "@/components/barra-superior";
+import { BarraSuperior } from "@/components/comunes/barra-superior";
 import { Button } from "@/components/ui/button";
-import { BOTON } from "@/lib/botones";
-import { useOrigen } from "@/lib/cliente";
+import { BOTON } from "@/lib/utilidades/botones";
+import { useOrigen } from "@/lib/utilidades/cliente";
+import { copiar } from "@/lib/utilidades/portapapeles";
 import { type Reunion, resumenBloques, resumenDias, textoHorario, zonaCorta } from "@/lib/reunion";
-import { resumenBloqueos } from "./resumen";
+import { resumenBloqueos } from "./resumen/resumen";
 
 /** Segundos que se muestra esta pantalla antes de llevar a la reunión. */
 const ESPERA = 5;
@@ -38,13 +41,9 @@ export function Exito({ codigo, reunion: r, copiado: yaCopiado, onOtra }: Props)
     if (faltan <= 0) router.push(`/e/${codigo}`);
   }, [faltan, codigo, router]);
 
-  const copiar = async () => {
-    try {
-      await navigator.clipboard.writeText(enlace);
-      setCopiado(true);
-    } catch {
-      // Sin permiso del navegador: el enlace queda visible para copiarlo a mano.
-    }
+  // Sin permiso del navegador, el enlace queda visible para copiarlo a mano.
+  const copiarLink = async () => {
+    if (await copiar(enlace)) setCopiado(true);
   };
 
   const filas: [string, string][] = [
@@ -58,7 +57,7 @@ export function Exito({ codigo, reunion: r, copiado: yaCopiado, onOtra }: Props)
   ];
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full flex-col bg-background lg:max-w-[88rem]">
+    <div className={PAGINA}>
       <BarraSuperior />
       <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-6 md:max-w-xl">
         <div className="grid size-14 place-items-center rounded-full bg-lime">
@@ -68,7 +67,7 @@ export function Exito({ codigo, reunion: r, copiado: yaCopiado, onOtra }: Props)
         <p className="text-muted-foreground">Comparte este link. Quien lo abra puede responder sin cuenta.</p>
         <div className="flex items-center gap-2 rounded-full border bg-muted py-1.5 pr-1.5 pl-5">
           <code className="min-w-0 flex-1 truncate font-semibold">{enlace}</code>
-          <Button className="h-11 gap-1.5 rounded-full px-5 font-extrabold" onClick={copiar}>
+          <Button className="h-11 gap-1.5 rounded-full px-5 font-extrabold" onClick={copiarLink}>
             {copiado ? <Check /> : <Copy />}
             {copiado ? "Copiado" : "Copiar"}
           </Button>
@@ -79,7 +78,7 @@ export function Exito({ codigo, reunion: r, copiado: yaCopiado, onOtra }: Props)
 
         <div className="flex flex-col gap-2 rounded-2xl bg-accent p-3.5" aria-live="polite">
           <p className="text-sm font-semibold">
-            Te llevamos a la reunión en {Math.max(faltan, 0)} {faltan === 1 ? "segundo" : "segundos"}.
+            Te llevamos a la reunión en {cantidad(Math.max(faltan, 0), "segundo", "segundos")}.
           </p>
           <Button className={BOTON.principal} onClick={() => router.push(`/e/${codigo}`)}>
             Ir a la reunión ahora

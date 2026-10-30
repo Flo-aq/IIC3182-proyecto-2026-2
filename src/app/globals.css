@@ -209,13 +209,21 @@
 }
 
 /*
- * La barra de desplazamiento de WeMeet: una línea fina y redonda, del gris de la marca, como la del resto de la aplicación
- * (ver AreaScroll). `scroll-grueso` la hace más ancha y le pone riel donde tiene que notarse, como en las grillas de horarios.
+ * La barra de desplazamiento de WeMeet: redonda y del gris de la marca, con el tamaño que pide cada elemento.
+ *  - La página: 10 px, la más visible, porque es la que más se usa.
+ *  - Diálogos, tarjetas, listas y paneles: 6 px, sin riel, para que no pese junto al contenido.
+ *  - `scroll-grueso` (las grillas de horarios): 12 px con riel, porque ahí hay que notarla y arrastrarla.
+ *  - Las filas de pastillas (plantillas, pestañas): la misma de 6 px, horizontal. `AreaScroll` dibuja su propia línea de 3 px.
+ * Firefox solo entiende scrollbar-width y scrollbar-color; Chrome y Safari, los ::-webkit-scrollbar (que dan el tamaño exacto).
  */
+:root {
+  --scroll-pulgar: color-mix(in oklab, var(--muted-foreground) 65%, transparent);
+}
+
 @layer base {
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--muted-foreground) transparent;
+    scrollbar-color: var(--scroll-pulgar) transparent;
   }
   .scroll-grueso {
     scrollbar-width: auto;
@@ -223,25 +231,40 @@
   }
 }
 
-/* Safari antiguo no entiende scrollbar-width ni scrollbar-color: ahí se dibuja la misma barra a mano. */
-@supports not (scrollbar-width: thin) {
+@supports selector(::-webkit-scrollbar) {
+  /* Con scrollbar-width o scrollbar-color puestos, Chrome ignora los ::-webkit-scrollbar: se devuelven a su valor inicial. */
+  * {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
   *::-webkit-scrollbar {
     width: 6px;
     height: 6px;
+  }
+  html::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-track,
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--scroll-pulgar);
+    border-radius: 9999px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
   }
   .scroll-grueso::-webkit-scrollbar {
     width: 12px;
     height: 12px;
   }
-  *::-webkit-scrollbar-track {
-    background: transparent;
-  }
   .scroll-grueso::-webkit-scrollbar-track {
     background: var(--secondary);
     border-radius: 9999px;
   }
-  *::-webkit-scrollbar-thumb {
+  .scroll-grueso::-webkit-scrollbar-thumb {
     background: var(--muted-foreground);
-    border-radius: 9999px;
   }
 }

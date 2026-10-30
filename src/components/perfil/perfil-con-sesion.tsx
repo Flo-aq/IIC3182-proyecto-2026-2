@@ -1,21 +1,22 @@
 "use client";
 
+import { PAGINA } from "@/lib/utilidades/estilos";
 import { useEffect, useState } from "react";
 
-import { BarraSuperior } from "@/components/barra-superior";
+import { BarraSuperior } from "@/components/comunes/barra-superior";
 import { Button } from "@/components/ui/button";
-import { BOTON } from "@/lib/botones";
-import { cargarPlantillas, cargarReuniones } from "@/lib/api-cuenta";
-import type { ReunionDePerfil } from "@/lib/perfil";
-import type { PlantillaDeCuenta } from "@/lib/plantillas";
-import { useSesion } from "@/lib/sesion";
+import { BOTON } from "@/lib/utilidades/botones";
+import { cargarPlantillas, cargarReuniones } from "@/lib/api/cuenta";
+import type { ReunionDePerfil } from "@/lib/cuenta/perfil";
+import type { PlantillaDeCuenta } from "@/lib/cuenta/plantillas";
+import { useSesion } from "@/lib/cuenta/sesion";
 import { Perfil } from "./perfil";
 import { PerfilSinCuenta } from "./perfil-sin-cuenta";
 
 type Datos = { reuniones: ReunionDePerfil[]; plantillas: PlantillaDeCuenta[] };
 
 /**
- * El perfil solo se abre con una cuenta (ver lib/sesion.ts): sin ella, se pide iniciar sesión.
+ * El perfil solo se abre con una cuenta (ver lib/cuenta/sesion.ts): sin ella, se pide iniciar sesión.
  * Las reuniones y plantillas vienen de GET /api/me/events y GET /api/me/templates.
  */
 export function PerfilConSesion() {
@@ -44,7 +45,7 @@ export function PerfilConSesion() {
 
   if (error && !datos) {
     return (
-      <div className="mx-auto flex min-h-dvh w-full flex-col bg-background lg:max-w-[88rem]">
+      <div className={PAGINA}>
         <BarraSuperior />
         <main className="flex flex-1 flex-col items-center justify-center gap-4 px-6 pb-16 text-center">
           <p className="text-sm text-muted-foreground">{error}</p>
@@ -58,7 +59,7 @@ export function PerfilConSesion() {
 
   if (!datos) {
     return (
-      <div className="mx-auto flex min-h-dvh w-full flex-col bg-background lg:max-w-[88rem]">
+      <div className={PAGINA}>
         <BarraSuperior />
         <main className="flex flex-1 items-center justify-center pb-16 text-sm text-muted-foreground" aria-live="polite">
           Cargando tu perfil…

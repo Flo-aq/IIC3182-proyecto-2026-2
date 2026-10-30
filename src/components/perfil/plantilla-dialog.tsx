@@ -1,15 +1,19 @@
 "use client";
 
-import { Pencil, TriangleAlert } from "lucide-react";
+import { ListaBloqueos } from "@/components/compartidos/lista-bloqueos";
+import { TITULO } from "@/lib/utilidades/estilos";
+import { Pencil } from "lucide-react";
 import { useState } from "react";
 
-import { Etiquetas } from "@/components/crear-reunion/etiquetas";
-import { FilasAcordeon, Obligatorio, useFilasConfiguracion } from "@/components/crear-reunion/filas-configuracion";
+import { Etiquetas } from "@/components/formularios/etiquetas";
+import { Campo } from "@/components/comunes/campo";
+import { Badge } from "@/components/ui/badge";
+import { FilasAcordeon, useFilasConfiguracion } from "@/components/formularios/filas-configuracion";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { BOTON } from "@/lib/botones";
-import { type PlantillaDeCuenta, comoPlantilla, comoReunion, problemasDePlantilla } from "@/lib/plantillas";
+import { BOTON } from "@/lib/utilidades/botones";
+import { type PlantillaDeCuenta, comoPlantilla, comoReunion, problemasDePlantilla } from "@/lib/cuenta/plantillas";
 import { POR_DEFECTO, type Plantilla, type Reunion, textoHorario } from "@/lib/reunion";
 
 let contadorDeIds = 0;
@@ -37,16 +41,7 @@ function ResumenPlantilla({ r, tags }: { r: Reunion; tags: string[] }) {
         <dt className="text-xs text-muted-foreground">Bloqueados</dt>
         {r.bloqueos.length ? (
           <dd>
-            <ul className="mt-1 flex flex-col gap-1.5">
-              {r.bloqueos.map((b) => (
-                <li key={b.id} className="flex flex-wrap items-baseline justify-between gap-x-3 rounded-xl bg-muted px-3 py-2">
-                  <b className="font-semibold">
-                    {b.desde} a {b.hasta}
-                  </b>
-                  <span className="text-muted-foreground">Todos los días</span>
-                </li>
-              ))}
-            </ul>
+            <ListaBloqueos bloqueos={r.bloqueos} dias={() => "Todos los días"} className="mt-1" />
           </dd>
         ) : (
           <dd className="font-semibold">Ninguno</dd>
@@ -61,9 +56,9 @@ function ResumenPlantilla({ r, tags }: { r: Reunion; tags: string[] }) {
         {tags.length ? (
           <dd className="mt-1 flex flex-wrap gap-1.5">
             {tags.map((t) => (
-              <span key={t} className="max-w-full truncate rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
+              <Badge key={t} className="max-w-full truncate">
                 {t}
-              </span>
+              </Badge>
             ))}
           </dd>
         ) : (
@@ -132,43 +127,28 @@ export function PlantillaDialog({ open, onOpenChange, inicial, otrosNombres, tag
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false} className="flex max-h-[calc(100dvh-2rem)] max-w-[calc(100%-1.5rem)] flex-col gap-0 overflow-hidden rounded-3xl p-0 sm:max-w-lg lg:max-w-4xl">
         <div className="shrink-0 px-5 pt-5 pb-3">
-          <DialogTitle className="font-heading text-xl font-extrabold tracking-tight">{titulo}</DialogTitle>
+          <DialogTitle className={TITULO.grande}>{titulo}</DialogTitle>
           <DialogDescription className="mt-1 text-sm">Lo que se repite de una reunión a otra. Los días los eliges cada vez que la usas.</DialogDescription>
         </div>
 
         <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_19rem]">
           <div className={`min-h-0 flex-col gap-3 overflow-y-auto px-5 pb-3 ${verResumen ? "hidden lg:flex" : "flex"}`}>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between gap-2">
-                <label htmlFor="nombre-plantilla" className="flex items-center gap-1.5 text-sm font-bold">
-                  <span>
-                    Nombre de la plantilla
-                    <Obligatorio />
-                  </span>
-                  {errorNombre && <TriangleAlert className="size-4 text-destructive" aria-hidden="true" />}
-                </label>
-                {errorNombre && (
-                  <p id="nombre-plantilla-error" role="alert" className="text-[0.8125rem] font-medium text-destructive">
-                    {errorNombre.mensaje}
-                  </p>
-                )}
-              </div>
-              <div className="relative">
-                <Input
-                  id="nombre-plantilla"
-                  value={r.titulo}
-                  maxLength={50}
-                  autoComplete="off"
-                  aria-required="true"
-                  aria-invalid={Boolean(errorNombre) || undefined}
-                  aria-describedby={errorNombre ? "nombre-plantilla-error" : undefined}
-                  placeholder="Ej: Reunión de cátedra · 30 min"
-                  className="h-12 rounded-2xl border-[1.5px] pr-11 pl-3.5 text-base"
-                  onChange={(e) => cambiar({ titulo: e.target.value })}
-                />
-                <Pencil aria-hidden="true" className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
-              </div>
-            </div>
+            <Campo id="nombre-plantilla" etiqueta="Nombre de la plantilla" obligatorio errorAlLado error={errorNombre?.mensaje}>
+              {(campo) => (
+                <div className="relative">
+                  <Input
+                    {...campo}
+                    value={r.titulo}
+                    maxLength={50}
+                    autoComplete="off"
+                    placeholder="Ej: Reunión de cátedra · 30 min"
+                    className="h-12 rounded-2xl border-[1.5px] pr-11 pl-3.5 text-base"
+                    onChange={(e) => cambiar({ titulo: e.target.value })}
+                  />
+                  <Pencil aria-hidden="true" className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                </div>
+              )}
+            </Campo>
             <FilasAcordeon filas={filas} abierto={abierto} onAbierto={setAbierto} malos={malos} />
           </div>
 

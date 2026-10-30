@@ -1,15 +1,16 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Bell, BellOff, CalendarCheck, Check, Copy, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { BOTON } from "@/lib/botones";
+import { BOTON } from "@/lib/utilidades/botones";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { textoAviso } from "@/components/responder/notificar-dialog";
-import { MAX_TAG, type ReunionDePerfil, MAX_TAGS_POR_REUNION, MAX_TAGS_TOTALES, buscarTag, normalizarTag, textoFecha, textoRespuestas } from "@/lib/perfil";
+import { textoAviso } from "@/components/compartidos/notificar-dialog";
+import { MAX_TAG, type ReunionDePerfil, MAX_TAGS_POR_REUNION, MAX_TAGS_TOTALES, buscarTag, normalizarTag, textoFecha, textoRespuestas } from "@/lib/cuenta/perfil";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -203,17 +204,23 @@ export function FilaReunion({ reunion: r, tags, editando, onQuitarTag, onAgregar
         </div>
       </div>
       <ul className="mt-2.5 flex flex-wrap items-center gap-1.5" aria-label="Tags">
-        <li className="rounded-full bg-lime px-2.5 py-0.5 text-xs font-bold">{r.rol === "creada" ? "Creada" : "Respondida"}</li>
-        {r.cerrada && <li className="rounded-full bg-lime px-2.5 py-0.5 text-xs font-bold">Cerrada</li>}
+        <Badge variant="lima" render={<li />}>
+          {r.rol === "creada" ? "Creada" : "Respondida"}
+        </Badge>
+        {r.cerrada && (
+          <Badge variant="lima" render={<li />}>
+            Cerrada
+          </Badge>
+        )}
         {r.tags.map((t) => (
-          <li key={t} className="inline-flex max-w-full items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
+          <Badge key={t} render={<li />} className="inline-flex max-w-full items-center gap-1">
             <span className="truncate">{t}</span>
             {editando && (
               <button type="button" className="-mr-1 grid size-4 place-items-center rounded-full hover:bg-primary/15" aria-label={`Quitar el tag ${t} de ${r.titulo}`} onClick={() => onQuitarTag(t)}>
                 <X aria-hidden="true" className="size-3" />
               </button>
             )}
-          </li>
+          </Badge>
         ))}
         {editando &&
           (r.tags.length >= MAX_TAGS_POR_REUNION ? (
