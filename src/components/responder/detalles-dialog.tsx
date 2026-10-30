@@ -31,7 +31,7 @@ export function DetallesDialog({ open, onOpenChange, reunion: r, personas }: Pro
             </div>
           ))}
           <div>
-            <dt className="text-xs text-muted-foreground">Bloqueados por quien creó la reunión</dt>
+            <dt className="text-xs text-muted-foreground">Horarios bloqueados por quien creó la reunión</dt>
             {r.bloqueos.length ? (
               <dd>
                 <ListaBloqueos bloqueos={r.bloqueos} dias={(b) => textoDiasRegla(b, r.dias)} className="mt-1" />

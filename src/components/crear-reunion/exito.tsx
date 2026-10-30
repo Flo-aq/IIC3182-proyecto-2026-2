@@ -51,7 +51,7 @@ export function Exito({ codigo, reunion: r, copiado: yaCopiado, onOtra }: Props)
     ["Días", resumenDias(r.dias)],
     ["Horario", textoHorario(r)],
     ["Bloques", resumenBloques(r)],
-    ["Bloqueados", resumenBloqueos(r)],
+    ["Horarios bloqueados", resumenBloqueos(r)],
     ["Integrantes clave", String(r.claves)],
     ["Zona horaria", zonaCorta(r.zona)],
   ];

@@ -38,7 +38,7 @@ function ResumenPlantilla({ r, tags }: { r: Reunion; tags: string[] }) {
         </div>
       </div>
       <div>
-        <dt className="text-xs text-muted-foreground">Bloqueados</dt>
+        <dt className="text-xs text-muted-foreground">Horarios bloqueados</dt>
         {r.bloqueos.length ? (
           <dd>
             <ListaBloqueos bloqueos={r.bloqueos} dias={() => "Todos los días"} className="mt-1" />
