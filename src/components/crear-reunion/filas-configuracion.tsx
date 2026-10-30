@@ -11,7 +11,7 @@ import { FIN_DEL_DIA, OPCIONES_BLOQUE, POR_DEFECTO, type Reunion, esTodoElDia, r
 import { BloqueosEditor } from "./bloqueos-editor";
 import { HoraField } from "./hora-field";
 
-export type FilaConfig = { id: string; etiqueta: string; obligatorio: boolean; resumen: string; contenido: ReactNode };
+type FilaConfig = { id: string; etiqueta: string; obligatorio: boolean; resumen: string; contenido: ReactNode };
 
 type Opciones = {
   r: Reunion;

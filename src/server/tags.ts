@@ -6,7 +6,7 @@ import { ErrorApi } from "./errores";
 type FilaTag = { id: string; name: string };
 
 /** Convierte los errores de las reglas de la base (topes de tags) en mensajes para la persona; el resto se vuelve a lanzar. */
-export function traducirError(e: { message?: string; code?: string }): never {
+function traducirError(e: { message?: string; code?: string }): never {
   const m = e.message ?? "";
   if (m.includes("hasta 30 tags")) throw new ErrorApi(409, "Una cuenta puede tener hasta 30 tags.");
   if (m.includes("reunión puede tener hasta 5 tags")) throw new ErrorApi(409, "Una reunión puede tener hasta 5 tags.");
@@ -21,7 +21,7 @@ export async function tagsDeLaCuenta(userId: string): Promise<FilaTag[]> {
 }
 
 /** El tag de la cuenta con ese nombre (sin distinguir mayúsculas); si no existe, lo crea. */
-export async function asegurarTag(userId: string, nombre: string, existentes?: FilaTag[]): Promise<FilaTag> {
+async function asegurarTag(userId: string, nombre: string, existentes?: FilaTag[]): Promise<FilaTag> {
   const n = normalizarTag(nombre);
   if (!n) throw new ErrorApi(400, "El tag no puede estar vacío.");
   const lista = existentes ?? (await tagsDeLaCuenta(userId));

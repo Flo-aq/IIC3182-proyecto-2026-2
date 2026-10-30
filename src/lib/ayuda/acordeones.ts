@@ -13,9 +13,9 @@ import {
   NOTAS_PERFIL,
   NOTAS_RESPONDER,
   NOTAS_RESPUESTAS,
-} from "@/lib/ayuda";
+} from "./textos";
 
-export type FotoItem = {
+type FotoItem = {
   foto: string;
   alt: string;
   leyenda?: string;

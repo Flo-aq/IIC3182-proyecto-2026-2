@@ -11,27 +11,9 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { type Item } from "@/lib/ayuda-acordeones";
-import { FOTOS_ACCESO } from "@/lib/ayuda-fotos-acceso";
-import { FOTOS_CREAR, type FotoLimpia } from "@/lib/ayuda-fotos-crear";
-import { FOTOS_AVISOS } from "@/lib/ayuda-fotos-avisos";
-import { FOTOS_CERRAR } from "@/lib/ayuda-fotos-cerrar";
-import { FOTOS_COMPARTIR } from "@/lib/ayuda-fotos-compartir";
-import { FOTOS_PERFIL } from "@/lib/ayuda-fotos-perfil";
-import { FOTOS_RESPONDER } from "@/lib/ayuda-fotos-responder";
-import { FOTOS_RESPUESTAS } from "@/lib/ayuda-fotos-respuestas";
+import { type Item } from "@/lib/ayuda/acordeones";
+import { FOTOS, type FotoLimpia } from "@/lib/ayuda/fotos";
 import { cn } from "@/lib/utils";
-
-const FOTOS: Record<string, FotoLimpia> = {
-  ...FOTOS_CREAR,
-  ...FOTOS_ACCESO,
-  ...FOTOS_RESPONDER,
-  ...FOTOS_RESPUESTAS,
-  ...FOTOS_COMPARTIR,
-  ...FOTOS_AVISOS,
-  ...FOTOS_CERRAR,
-  ...FOTOS_PERFIL,
-};
 
 /** La foto, con un recuadro donde se toca (si lo hay); al tocarla se amplía. */
 function Foto({ f, ampliada }: { f: FotoLimpia; ampliada?: boolean }) {

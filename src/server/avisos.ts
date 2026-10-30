@@ -163,12 +163,6 @@ export async function avisoPorLlave(slug: string, id: string, token: string): Pr
   return { id: f.id, aviso: comoAviso(f, f.events.timezone) };
 }
 
-/** Al cerrar una reunión ya no tiene sentido avisar: los avisos pendientes se cancelan. */
-export async function cancelarAvisosDe(eventId: string): Promise<void> {
-  const { error } = await db().from("notifications").update({ status: "cancelled" }).eq("event_id", eventId).eq("status", "pending");
-  if (error) throw error;
-}
-
 // ---- el correo ----
 
 const escapar = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");

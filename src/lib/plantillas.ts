@@ -32,7 +32,7 @@ export function comoPlantilla(r: Reunion): Plantilla {
   return { nombre, detalle: detalleDe(base), ...base };
 }
 
-export type ProblemaDePlantilla = { campo: "nombre" | "horario" | "bloqueos"; mensaje: string };
+type ProblemaDePlantilla = { campo: "nombre" | "horario" | "bloqueos"; mensaje: string };
 
 /** Lo que falta o está mal en la plantilla que se está editando. */
 export function problemasDePlantilla(r: Reunion, otrosNombres: string[]): ProblemaDePlantilla[] {

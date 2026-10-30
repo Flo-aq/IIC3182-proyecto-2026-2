@@ -1,6 +1,6 @@
 import "server-only";
 
-export type Correo = { a: string; asunto: string; texto: string; html: string };
+type Correo = { a: string; asunto: string; texto: string; html: string };
 
 /**
  * Envía un correo con Resend (`RESEND_API_KEY`). `EMAIL_FROM` es el remitente ("WeMeet <avisos@tudominio.cl>"): Resend solo deja

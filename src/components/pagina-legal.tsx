@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { PaginaAyuda } from "@/components/pagina-ayuda";
 
-export type SeccionLegal = { titulo: string; contenido: ReactNode };
+type SeccionLegal = { titulo: string; contenido: ReactNode };
 
 /** Las páginas de privacidad y condiciones: el marco de la ayuda, con secciones de texto. */
 export function PaginaLegal({

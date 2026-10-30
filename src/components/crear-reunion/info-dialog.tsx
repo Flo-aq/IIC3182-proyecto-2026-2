@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { BOTON } from "@/lib/botones";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PASOS } from "@/lib/ayuda";
+import { PASOS } from "@/lib/ayuda/textos";
 
 type Props = { open: boolean; onOpenChange: (open: boolean) => void };
 

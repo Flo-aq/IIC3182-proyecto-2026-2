@@ -189,7 +189,8 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
   };
 
   const crear = async () => {
-    if (enviando) return;
+    // Mientras se lee la sesión todavía no se sabe si hay que pedir "Tu nombre": se espera ese instante.
+    if (enviando || cargando) return;
     const faltan = todosLosProblemas(r, pideNombre, organizador);
     if (faltan.length) {
       setIntento(true);
@@ -419,7 +420,7 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
         >
           Ver resumen
         </Button>
-        <Button className={`${BOTON.heroe} w-full`} onClick={crear} disabled={enviando}>
+        <Button className={`${BOTON.heroe} w-full`} onClick={crear} disabled={enviando || cargando}>
           {enviando ? "Creando…" : "Crear reunión"}
         </Button>
       </div>

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { GuiaAcordeon } from "@/components/guia-acordeon";
 import { PaginaAyuda } from "@/components/pagina-ayuda";
 import { TextoRico } from "@/components/texto-rico";
-import { GUIAS } from "@/lib/ayuda";
+import { GUIAS } from "@/lib/ayuda/textos";
 import {
   type Item,
   itemsAvisos,
@@ -13,11 +13,11 @@ import {
   itemsPerfil,
   itemsResponder,
   itemsRespuestas,
-} from "@/lib/ayuda-acordeones";
+} from "@/lib/ayuda/acordeones";
 
 export const metadata: Metadata = { title: "How to · WeMeet" };
 
-/** Las filas de cada guía: pasos y notas, con sus fotos escondidas hasta "Ver foto" (ver lib/ayuda-acordeones.ts). */
+/** Las filas de cada guía: pasos y notas, con sus fotos escondidas hasta "Ver foto" (ver lib/ayuda/acordeones.ts). */
 const ITEMS: Record<string, (pasos: string[]) => Item[]> = {
   crear: itemsCrear,
   responder: itemsResponder,

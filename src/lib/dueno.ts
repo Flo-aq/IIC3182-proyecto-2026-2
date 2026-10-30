@@ -2,8 +2,9 @@
 
 import { useSyncExternalStore } from "react";
 
-// La llave del creador de una reunión sin cuenta: se guarda en este navegador al crearla y permite cerrarla o reabrirla.
-// Si se cambia de dispositivo o se borran los datos del navegador, se pierde (con una cuenta no hace falta).
+// La llave del creador de una reunión sin cuenta: se guarda en este navegador al crearla y permite cerrarla.
+// Si se cambia de dispositivo o se borran los datos del navegador, se pierde: ahí se cierra con el nombre de quien organiza
+// (o con la cuenta, si la reunión se creó con una).
 
 const clave = (slug: string) => `wemeet:dueno:${slug}`;
 

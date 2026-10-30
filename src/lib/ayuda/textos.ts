@@ -192,7 +192,7 @@ export const NOTAS_PERFIL: Record<
 };
 
 /** Cada pantalla tiene un `id` (para enlazar a su sección, como /how-to#perfil) y un nombre `corto` para la pestaña. */
-export type Guia = {
+type Guia = {
   vista: string;
   id: string;
   corto: string;
@@ -283,7 +283,7 @@ export const GUIAS: Guia[] = [
   },
 ];
 
-export type Pregunta = { pregunta: string; respuesta: string };
+type Pregunta = { pregunta: string; respuesta: string };
 
 /** FAQ: las preguntas frecuentes, agrupadas por pantalla. */
 export const GRUPOS_PREGUNTAS: {

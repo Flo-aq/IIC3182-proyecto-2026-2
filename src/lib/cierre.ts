@@ -4,7 +4,7 @@
 import { type Reunion, etiquetaDia } from "./reunion";
 import { type PersonaSet, horaDeFila, mapaBloqueados, totalFilas } from "./respuestas";
 
-export type OpcionCierre = {
+type OpcionCierre = {
   dia: string;
   fila: number;
   /** El bloque como lo usa la grilla: "AAAA-MM-DD|fila". */
@@ -13,7 +13,7 @@ export type OpcionCierre = {
   faltan: { nombre: string; clave: boolean }[];
 };
 
-export type GrupoCierre = {
+type GrupoCierre = {
   /** 1 es el mejor: están todos los clave y toda la gente; 4 es el que menos cumple. */
   id: 1 | 2 | 3 | 4;
   titulo: string;

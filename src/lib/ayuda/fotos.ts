@@ -1,0 +1,46 @@
+// Las fotos del How to (public/ayuda): su ruta, su tamaño real en píxeles (para que la página reserve el espacio) y,
+// si lo tienen, el recuadro naranja que marca dónde se toca (en % de la foto).
+// Se sacaron de la interfaz real con datos de ejemplo; si cambia el diseño, hay que volver a sacarlas y actualizar su tamaño.
+
+type Toque = { x: number; y: number; w: number; h: number };
+export type FotoLimpia = { src: string; ancho: number; alto: number; toques: Toque[] };
+
+export const FOTOS: Record<string, FotoLimpia> = {
+  "crear-desplegable-cerrado": { src: "/ayuda/crear-desplegable-cerrado.png", ancho: 372, alto: 69, toques: [{ x: 2.15, y: 11.59, w: 95.7, h: 75.36 }] },
+  "crear-desplegable-abierto": { src: "/ayuda/crear-desplegable-abierto.png", ancho: 372, alto: 532, toques: [{ x: 2.15, y: 1.5, w: 95.7, h: 9.77 }] },
+  "crear-nombre": { src: "/ayuda/crear-nombre.png", ancho: 374, alto: 220, toques: [] },
+  "crear-horario": { src: "/ayuda/crear-horario.png", ancho: 372, alto: 216, toques: [] },
+  "crear-bloque": { src: "/ayuda/crear-bloque.png", ancho: 372, alto: 189, toques: [] },
+  "crear-bloqueos": { src: "/ayuda/crear-bloqueos.png", ancho: 372, alto: 303, toques: [] },
+  "crear-claves": { src: "/ayuda/crear-claves.png", ancho: 372, alto: 185, toques: [] },
+  "crear-plantilla": { src: "/ayuda/crear-plantilla.png", ancho: 374, alto: 95, toques: [] },
+  "crear-boton-celular": { src: "/ayuda/crear-boton-celular.png", ancho: 374, alto: 128, toques: [] },
+  "crear-boton-computador": { src: "/ayuda/crear-boton-computador.png", ancho: 632, alto: 72, toques: [] },
+  "acceso-nombre": { src: "/ayuda/acceso-nombre.png", ancho: 374, alto: 90, toques: [] },
+  "acceso-clave": { src: "/ayuda/acceso-clave.png", ancho: 374, alto: 96, toques: [] },
+  "acceso-google": { src: "/ayuda/acceso-google.png", ancho: 374, alto: 120, toques: [] },
+  "responder-horario": { src: "/ayuda/responder-horario.png", ancho: 390, alto: 699, toques: [] },
+  "responder-conteo": { src: "/ayuda/responder-conteo.png", ancho: 390, alto: 86, toques: [{ x: 27.95, y: 5.81, w: 44.1, h: 24.42 }] },
+  "responder-guardar": { src: "/ayuda/responder-guardar.png", ancho: 374, alto: 64, toques: [] },
+  "respuestas-ubicacion": { src: "/ayuda/respuestas-ubicacion.png", ancho: 390, alto: 330, toques: [] },
+  "respuestas-mapa": { src: "/ayuda/respuestas-mapa.png", ancho: 374, alto: 300, toques: [] },
+  "respuestas-leyenda": { src: "/ayuda/respuestas-leyenda.png", ancho: 374, alto: 87, toques: [] },
+  "respuestas-quien": { src: "/ayuda/respuestas-quien.png", ancho: 374, alto: 165, toques: [] },
+  "compartir-quien": { src: "/ayuda/compartir-quien.png", ancho: 374, alto: 163, toques: [] },
+  "compartir-resumen": { src: "/ayuda/compartir-resumen.png", ancho: 374, alto: 466, toques: [] },
+  "avisos-personas": { src: "/ayuda/avisos-personas.png", ancho: 318, alto: 257, toques: [] },
+  "avisos-fecha": { src: "/ayuda/avisos-fecha.png", ancho: 318, alto: 297, toques: [] },
+  "avisos-fecha-hora": { src: "/ayuda/avisos-fecha-hora.png", ancho: 318, alto: 273, toques: [] },
+  "avisos-correo": { src: "/ayuda/avisos-correo.png", ancho: 318, alto: 150, toques: [] },
+  "avisos-quitar": { src: "/ayuda/avisos-quitar.png", ancho: 374, alto: 120, toques: [] },
+  "cerrar-elegir": { src: "/ayuda/cerrar-elegir.png", ancho: 358, alto: 532, toques: [] },
+  "cerrar-confirmar": { src: "/ayuda/cerrar-confirmar.png", ancho: 358, alto: 346, toques: [] },
+  "cerrar-calendario": { src: "/ayuda/cerrar-calendario.png", ancho: 310, alto: 228, toques: [] },
+  "perfil-lista": { src: "/ayuda/perfil-lista.png", ancho: 374, alto: 251, toques: [] },
+  "perfil-abierta": { src: "/ayuda/perfil-abierta.png", ancho: 374, alto: 116, toques: [] },
+  "perfil-cerrada": { src: "/ayuda/perfil-cerrada.png", ancho: 374, alto: 116, toques: [] },
+  "perfil-filtros": { src: "/ayuda/perfil-filtros.png", ancho: 390, alto: 461, toques: [] },
+  "perfil-tags": { src: "/ayuda/perfil-tags.png", ancho: 374, alto: 259, toques: [] },
+  "perfil-plantillas": { src: "/ayuda/perfil-plantillas.png", ancho: 374, alto: 312, toques: [] },
+  "perfil-filtros-escritorio": { src: "/ayuda/perfil-filtros-escritorio.png", ancho: 224, alto: 308, toques: [] },
+};

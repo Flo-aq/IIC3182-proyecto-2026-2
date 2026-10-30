@@ -147,7 +147,7 @@ type FilaReunion = {
 const SLUG_VALIDO = /^[a-z0-9-]{1,40}$/;
 
 /** La reunión con sus respuestas, y quién la creó (`duenoId`, solo para el servidor: no debe llegar al navegador). */
-export type ReunionLeida = ReunionConRespuestas & { duenoId: string | null };
+type ReunionLeida = ReunionConRespuestas & { duenoId: string | null };
 
 export async function leerReunion(slug: string): Promise<ReunionLeida | null> {
   if (!SLUG_VALIDO.test(slug)) return null;
@@ -268,7 +268,7 @@ export async function reabrirReunion(slug: string, entrada: unknown, userId: str
 // ---- guardar respuesta ----
 
 /** `eventId` es solo para el servidor (por ejemplo, para revisar los avisos): no se le manda al navegador. */
-export type ResultadoRespuesta = { claveDenegada: boolean; clave: boolean; eventId: string };
+type ResultadoRespuesta = { claveDenegada: boolean; clave: boolean; eventId: string };
 
 export async function guardarRespuesta(slug: string, entrada: unknown, userId: string | null = null): Promise<ResultadoRespuesta> {
   const parsed = esquemaRespuesta.safeParse(entrada);

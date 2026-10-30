@@ -13,8 +13,8 @@ function ipDe(req: Request): string {
  * La IP no se guarda: se convierte en un código (con una sal) y solo ese código queda en la base, hasta que vence la ventana.
  *
  * Los límites son holgados a propósito: en una sala de clases todos comparten la IP del wifi, y esto solo busca frenar
- * programas que repiten la misma petición, no a personas. Si el contador falla (por ejemplo, la función aún no existe en la
- * base), se deja pasar: es preferible no limitar que dejar a todos sin poder usar WeMeet.
+ * programas que repiten la misma petición, no a personas. Si el contador falla (por ejemplo, la base no responde), se deja
+ * pasar: es preferible no limitar que dejar a todos sin poder usar WeMeet.
  */
 export async function limitar(req: Request, nombre: string, max: number, ventanaSegundos: number): Promise<void> {
   const codigo = createHash("sha256").update(`${ipDe(req)}:${process.env.CRON_SECRET ?? ""}`).digest("hex").slice(0, 32);

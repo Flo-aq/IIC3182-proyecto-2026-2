@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 import { PaginaAyuda } from "@/components/pagina-ayuda";
 import { TextoRico } from "@/components/texto-rico";
-import { GRUPOS_PREGUNTAS } from "@/lib/ayuda";
+import { GRUPOS_PREGUNTAS } from "@/lib/ayuda/textos";
 
 export const metadata: Metadata = { title: "FAQ · WeMeet" };
 

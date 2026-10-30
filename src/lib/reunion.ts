@@ -142,7 +142,7 @@ export function bloquesDelDia(r: ConfigBloques, dia: string): boolean[] {
 }
 
 /** Cantidad de bloques disponibles por día; es un rango si los bloqueos afectan distinto a cada día. */
-export function rangoBloques(r: Reunion): { min: number; max: number; texto: string } {
+function rangoBloques(r: Reunion): { min: number; max: number; texto: string } {
   const dias = r.dias.length ? r.dias : [""];
   const cuentas = dias.map((d) => bloquesDelDia(r, d).filter(Boolean).length);
   const min = Math.min(...cuentas);

@@ -34,7 +34,7 @@ type Props = {
   enlace: string;
   /** El bloque elegido si la reunión ya se cerró. */
   cerrada: string | null;
-  /** Quien creó la reunión puede cerrarla y reabrirla desde aquí. */
+  /** Quien creó la reunión (con cuenta, con su llave o con el nombre de organizador) puede cerrarla desde aquí. */
   esDueno: boolean;
   /** El nombre con que se entró a la reunión (se manda al cerrar, por si es el del organizador). */
   nombre?: string;

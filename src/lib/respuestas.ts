@@ -17,13 +17,13 @@ export type ReunionConRespuestas = {
 };
 
 /** Con más días que esto, la grilla muestra semanas de lunes a domingo y flechas para ir de una a otra. */
-export const MAX_DIAS_SIN_SEMANAS = 7;
+const MAX_DIAS_SIN_SEMANAS = 7;
 
 /** Cuántas columnas caben en un celular sin scroll; en modo semanal las 2 restantes se ven con scroll. */
 export const COLUMNAS_VISIBLES = 5;
 
 /** Con esta cantidad de respuestas (sin contar a los clave) el gris llega a su tono más oscuro. */
-export const TOPE_RESPUESTAS = 8;
+const TOPE_RESPUESTAS = 8;
 
 export const claveBloque = (dia: string, fila: number): string => `${dia}|${fila}`;
 
@@ -37,14 +37,14 @@ export function horaDeFila(r: Pick<Reunion, "desde" | "bloqueMin">, fila: number
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
-export const sumarDias = (iso: string, n: number): string => {
+const sumarDias = (iso: string, n: number): string => {
   const d = desdeIso(iso);
   d.setDate(d.getDate() + n);
   return aIso(d);
 };
 
 /** Lunes de la semana en que cae `iso`. */
-export function lunesDe(iso: string): string {
+function lunesDe(iso: string): string {
   const d = desdeIso(iso);
   return sumarDias(iso, -((d.getDay() + 6) % 7));
 }
@@ -117,7 +117,7 @@ const VIOLETA_CLARO: Rgb = [214, 205, 255];
 const VIOLETA: Rgb = [72, 35, 255];
 
 /** El tono más oscuro del gris sube con la cantidad de respuestas (sin contar a los clave), con un tope. */
-export function grisMasOscuro(normales: number): Rgb {
+function grisMasOscuro(normales: number): Rgb {
   return mezclar(GRIS_CLARO, GRIS_OSCURO, 0.35 + 0.65 * Math.min(1, normales / TOPE_RESPUESTAS));
 }
 
@@ -142,10 +142,10 @@ export const colorLeyendaClave = { claro: css(VIOLETA_CLARO), oscuro: css(VIOLET
 
 // ---- resumen para copiar al grupo ----
 
-export type Tramo = { dia: string; desde: number; hasta: number; puedenN: number };
+type Tramo = { dia: string; desde: number; hasta: number; puedenN: number };
 
 /** Los mejores tramos: bloques seguidos con la misma cantidad de gente; si hay clave, solo donde pueden todos. */
-export function mejoresTramos(r: Reunion, personas: PersonaSet[], exigirClave: boolean): Tramo[] {
+function mejoresTramos(r: Reunion, personas: PersonaSet[], exigirClave: boolean): Tramo[] {
   const claves = personas.filter((p) => p.clave);
   const filas = totalFilas(r);
   const bloqueados = mapaBloqueados(r);
