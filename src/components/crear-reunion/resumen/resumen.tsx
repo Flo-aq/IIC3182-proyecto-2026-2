@@ -108,7 +108,7 @@ export function ResumenReunion({ reunion: r }: { reunion: Reunion }) {
       </div>
       <Fila filas={filas} />
       <div>
-        <dt className="text-xs text-muted-foreground">Bloqueados</dt>
+        <dt className="text-xs text-muted-foreground">Horarios bloqueados</dt>
         {r.bloqueos.length ? (
           <dd>
             {/* Las cajas salen 12 px a la izquierda para que el texto de cada horario quede alineado con el rótulo. */}
