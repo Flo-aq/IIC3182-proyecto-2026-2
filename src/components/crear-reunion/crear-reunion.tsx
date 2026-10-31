@@ -55,11 +55,11 @@ type Props = {
 };
 
 export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Props) {
-  const { conCuenta, cargando } = useSesion();
+  const { conCuenta } = useSesion();
   const propias = plantillasPropias;
   /** Quien organiza sin cuenta escribe su nombre: con él podrá cerrar la reunión desde cualquier dispositivo (con cuenta no hace falta). */
   const [organizador, setOrganizador] = useState("");
-  const pideNombre = !cargando && !conCuenta;
+  const pideNombre = !conCuenta;
   // Primero las propias (solo se ofrecen con cuenta) y después las de WeMeet.
   const plantillasDisponibles: (Plantilla & { tags?: string[] })[] = conCuenta ? [...propias, ...PLANTILLAS] : PLANTILLAS;
   const [r, setR] = useState<Reunion>(INICIAL);
@@ -157,7 +157,7 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
 
   const crear = async () => {
     // Mientras se lee la sesión todavía no se sabe si hay que pedir "Tu nombre": se espera ese instante.
-    if (enviando || cargando) return;
+    if (enviando) return;
     const faltan = todosLosProblemas(r, pideNombre, organizador);
     if (faltan.length) {
       setIntento(true);
@@ -297,7 +297,7 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
         >
           Ver resumen
         </Button>
-        <Button className={`${BOTON.heroe} w-full`} onClick={crear} disabled={enviando || cargando}>
+        <Button className={`${BOTON.heroe} w-full`} onClick={crear} disabled={enviando}>
           {enviando ? "Creando…" : "Crear reunión"}
         </Button>
       </div>

@@ -29,5 +29,19 @@ export async function usuarioActual(): Promise<{ id: string; email: string | und
   return { id: u.id, email: u.email, nombre };
 }
 
+/**
+ * El nombre de la cuenta de quien pide la página, o null si no inició sesión. Es solo para mostrar (el botón de cuenta,
+ * pedir o no el nombre): lo que da acceso a datos se sigue verificando con `usuarioActual`. Sin cookies de sesión no consulta nada.
+ */
+export async function nombreDeCuentaActual(): Promise<string | null> {
+  const jar = await cookies();
+  if (!jar.getAll().some((c) => c.name.startsWith("sb-"))) return null;
+  const { data } = await (await supabaseServidor()).auth.getClaims();
+  const c = data?.claims;
+  if (!c) return null;
+  const meta = c.user_metadata as { full_name?: string; name?: string } | undefined;
+  return meta?.full_name ?? meta?.name ?? c.email ?? "Tu cuenta";
+}
+
 /** Solo rutas internas ("/perfil"): evita que /auth/login?next=https://otro.sitio mande a otro lado. */
 export const destinoSeguro = (next: string | null): string => (next && /^\/(?![/\\])/.test(next) ? next : "/");

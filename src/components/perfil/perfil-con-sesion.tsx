@@ -20,7 +20,7 @@ type Datos = { reuniones: ReunionDePerfil[]; plantillas: PlantillaDeCuenta[] };
  * Las reuniones y plantillas vienen de GET /api/me/events y GET /api/me/templates.
  */
 export function PerfilConSesion() {
-  const { conCuenta, cargando } = useSesion();
+  const { conCuenta } = useSesion();
   const [datos, setDatos] = useState<Datos | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [intento, setIntento] = useState(0);
@@ -40,7 +40,6 @@ export function PerfilConSesion() {
     };
   }, [conCuenta, intento]);
 
-  if (cargando) return <div className="h-dvh bg-background" />;
   if (!conCuenta) return <PerfilSinCuenta />;
 
   if (error && !datos) {

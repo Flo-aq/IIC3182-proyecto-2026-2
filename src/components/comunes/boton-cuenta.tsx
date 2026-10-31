@@ -17,13 +17,10 @@ import { cn } from "@/lib/utils";
  * (Mi perfil y Cerrar sesión). Es el mismo en todas las pantallas.
  */
 export function BotonCuenta() {
-  const { conCuenta, nombre, cargando, cerrar } = useSesion();
+  const { conCuenta, nombre, cerrar } = useSesion();
   const [abierto, setAbierto] = useState(false);
   const ruta = usePathname();
   const router = useRouter();
-
-  // Mientras se lee la sesión se reserva el espacio, para que la barra no salte.
-  if (cargando) return <span aria-hidden="true" className="h-9 w-20" />;
 
   if (!conCuenta) {
     return (
