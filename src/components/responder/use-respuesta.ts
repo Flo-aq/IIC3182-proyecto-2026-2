@@ -15,11 +15,13 @@ const nombreDeCuenta = (n: string): string => n.replace(/\s+/g, " ").trim().slic
 
 /**
  * Con cuenta no se pide el nombre: si el servidor ya sabe que hay una (`cuentaNombre`), Mi horario parte lista desde la primera
- * pantalla, con la respuesta que ya había con ese nombre, si la había. Así no se ve un instante la pantalla de acceso.
+ * pantalla, con la respuesta que ya había con ese nombre, si la había. Lo mismo vale para quien creó la reunión sin cuenta en
+ * este navegador (`nombreGuardado`, el nombre que escribió al crearla). Así no se ve un instante la pantalla de acceso.
  */
-function entradaInicial(datos: ReunionConRespuestas, cuentaNombre: string | null) {
-  if (cuentaNombre === null || datos.cerrada) return null;
-  const nombre = nombreDeCuenta(cuentaNombre);
+function entradaInicial(datos: ReunionConRespuestas, cuentaNombre: string | null, nombreGuardado: string | null) {
+  const entrante = cuentaNombre ?? nombreGuardado;
+  if (entrante === null || datos.cerrada) return null;
+  const nombre = nombreDeCuenta(entrante);
   const previa = datos.personas.find((p) => p.nombre.trim().toLowerCase() === nombre.toLowerCase());
   return { nombre: previa?.nombre ?? nombre, retomada: previa?.nombre ?? null, disp: previa?.disp ?? null };
 }
@@ -39,12 +41,12 @@ export function useRefrescoAutomatico() {
 }
 
 /** Quién eres, qué marcaste y cómo se guarda: todo lo de la respuesta propia en la pantalla de responder. */
-export function useRespuesta(datos: ReunionConRespuestas, esDuenoCuenta: boolean, cuentaNombre: string | null) {
+export function useRespuesta(datos: ReunionConRespuestas, esDuenoCuenta: boolean, cuentaNombre: string | null, nombreGuardado: string | null) {
   const { slug, cerrada } = datos;
   // Cierra la reunión quien la creó: con su cuenta, desde el navegador donde la creó (guardó una llave) o entrando con el
   // nombre que puso como organizador (se calcula cuando ya se sabe con qué nombre se entró).
   const tieneLlave = useTieneLlave(slug);
-  const [entrada] = useState(() => entradaInicial(datos, cuentaNombre));
+  const [entrada] = useState(() => entradaInicial(datos, cuentaNombre, nombreGuardado));
   const [mias, setMias] = useState<Set<string>>(() => new Set(entrada?.disp ?? []));
   const [guardadas, setGuardadas] = useState<string[] | null>(entrada?.disp ?? null);
   const [nombre, setNombre] = useState(entrada?.nombre ?? "");
@@ -64,6 +66,9 @@ export function useRespuesta(datos: ReunionConRespuestas, esDuenoCuenta: boolean
   /** Para entrar con el nombre de la cuenta una sola vez (si después se pulsa "Cambiar", no se vuelve a entrar sola). */
   const entroSola = useRef(entrada !== null);
   const hayCuenta = cuentaNombre !== null || conCuenta;
+  /** La casilla "Soy integrante clave" va en el pie cuando no se pasó por la pantalla de acceso (cuenta o nombre guardado). */
+  const [entroSinAcceso, setEntroSinAcceso] = useState(entrada !== null);
+  const claveEnElPie = hayCuenta || entroSinAcceso;
 
   const buscado = nombre.trim().toLowerCase();
   const existente = buscado ? datos.personas.find((p) => p.nombre.trim().toLowerCase() === buscado) : undefined;
@@ -140,6 +145,7 @@ export function useRespuesta(datos: ReunionConRespuestas, esDuenoCuenta: boolean
       setGuardadas(null);
     }
     setListo(false);
+    setEntroSinAcceso(false);
   };
 
   const guardar = async () => {
@@ -182,6 +188,7 @@ export function useRespuesta(datos: ReunionConRespuestas, esDuenoCuenta: boolean
     guardando,
     esClave,
     hayCuenta,
+    claveEnElPie,
     existente,
     hayClaves,
     clavesLlenas,

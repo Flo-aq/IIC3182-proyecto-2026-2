@@ -24,7 +24,9 @@ import { useRefrescoAutomatico, useRespuesta } from "./use-respuesta";
 import { useTarjetaCompartir } from "./use-tarjeta-compartir";
 
 /** Pantalla de quien recibe el link: marca cuándo puede, mira al grupo y comparte el estado. */
-export function Responder({ datos, esDuenoCuenta, cuentaNombre }: { datos: ReunionConRespuestas; esDuenoCuenta: boolean; cuentaNombre: string | null }) {
+type Props = { datos: ReunionConRespuestas; esDuenoCuenta: boolean; cuentaNombre: string | null; nombreGuardado: string | null };
+
+export function Responder({ datos, esDuenoCuenta, cuentaNombre, nombreGuardado }: Props) {
   const { reunion: r, slug, cerrada } = datos;
   const {
     mias,
@@ -40,6 +42,7 @@ export function Responder({ datos, esDuenoCuenta, cuentaNombre }: { datos: Reuni
     guardando,
     esClave,
     hayCuenta,
+    claveEnElPie,
     existente,
     hayClaves,
     clavesLlenas,
@@ -50,7 +53,7 @@ export function Responder({ datos, esDuenoCuenta, cuentaNombre }: { datos: Reuni
     continuar,
     cambiarNombre,
     guardar,
-  } = useRespuesta(datos, esDuenoCuenta, cuentaNombre);
+  } = useRespuesta(datos, esDuenoCuenta, cuentaNombre, nombreGuardado);
   const [pestana, setPestana] = useState(0);
   const [verDetalles, setVerDetalles] = useState(false);
   const [semana, setSemana] = useState(0);
@@ -79,8 +82,8 @@ export function Responder({ datos, esDuenoCuenta, cuentaNombre }: { datos: Reuni
 
   const pie = (
     <PieGuardar
-      // Con cuenta no se pasa por la pantalla de acceso, así que aquí se declara si eres integrante clave (solo la primera vez).
-      pideClave={hayCuenta && hayClaves && !clavesLlenas && !retomada}
+      // Con cuenta, o con el nombre ya guardado, no se pasa por la pantalla de acceso: aquí se declara si eres integrante clave (solo la primera vez).
+      pideClave={claveEnElPie && hayClaves && !clavesLlenas && !retomada}
       clave={clave}
       onClave={setClave}
       marcados={marcados}

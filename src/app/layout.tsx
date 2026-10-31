@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import type { ReactNode } from "react";
+import { Suspense } from "react";
 import { SesionProvider } from "@/lib/cuenta/sesion";
 import { nombreDeCuentaActual } from "@/lib/supabase/servidor";
 import { Toaster } from "@/components/ui/sonner";
@@ -32,11 +34,18 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
+/** La sesión se lee de las cookies, que son datos de cada visita: por eso va dentro de un Suspense y no bloquea el resto del layout. */
+async function ConSesion({ children }: { children: ReactNode }) {
+  return <SesionProvider nombreInicial={await nombreDeCuentaActual()}>{children}</SesionProvider>;
+}
+
+export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className={`${inter.variable} ${jakarta.variable} ${jetbrains.variable}`}>
       <body>
-        <SesionProvider nombreInicial={await nombreDeCuentaActual()}>{children}</SesionProvider>
+        <Suspense fallback={null}>
+          <ConSesion>{children}</ConSesion>
+        </Suspense>
         <Toaster
           position="top-center"
           offset={{ top: "max(1rem, env(safe-area-inset-top))", left: "1rem", right: "1rem" }}
