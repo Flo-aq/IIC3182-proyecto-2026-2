@@ -12,6 +12,7 @@ import { AvisoSuperior, BarraSuperior } from "@/components/comunes/barra-superio
 import { Input } from "@/components/ui/input";
 import { pedir } from "@/lib/api";
 import { guardarLlave } from "@/lib/cuenta/dueno";
+import { guardarOrganizador } from "@/lib/cuenta/organizador";
 import { copiar } from "@/lib/utilidades/portapapeles";
 import { useSesion } from "@/lib/cuenta/sesion";
 import type { PlantillaDeCuenta } from "@/lib/cuenta/plantillas";
@@ -177,6 +178,7 @@ export function CrearReunion({ plantillasPropias = [], tagsDeLaCuenta = [] }: Pr
       });
       // La llave del creador queda en este navegador: con ella podrá cerrar la reunión aunque no tenga cuenta.
       guardarLlave(cuerpo.slug, cuerpo.tokenDueno);
+      if (pideNombre) guardarOrganizador(cuerpo.slug, organizador.trim());
       // El link se copia solo: es lo primero que se hace con una reunión nueva. Si el navegador no deja, la pantalla lo avisa.
       const copiado = await copiar(`${window.location.origin}/e/${cuerpo.slug}`);
       if (copiado) toast.success("Link copiado");
