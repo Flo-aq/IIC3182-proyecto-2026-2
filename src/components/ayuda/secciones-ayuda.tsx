@@ -54,7 +54,7 @@ export function SeccionesAyuda({
         <div className={cn("pt-2 pb-1", claseAncho)}>
           <ListaDePestanas
             aria-label="Pantallas"
-            className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-2"
+            className="-mx-4 flex gap-1.5 overflow-x-scroll px-4 pb-2"
           >
             {secciones.map((s) => (
               <Pestana

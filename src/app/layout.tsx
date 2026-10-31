@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { SesionProvider } from "@/lib/cuenta/sesion";
+import { nombreDeCuentaActual } from "@/lib/supabase/servidor";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -30,11 +32,11 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className={`${inter.variable} ${jakarta.variable} ${jetbrains.variable}`}>
       <body>
-        {children}
+        <SesionProvider nombreInicial={await nombreDeCuentaActual()}>{children}</SesionProvider>
         <Toaster
           position="top-center"
           offset={{ top: "max(1rem, env(safe-area-inset-top))", left: "1rem", right: "1rem" }}

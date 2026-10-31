@@ -53,7 +53,7 @@ export function Plantillas({ plantillas, elegida, onElegir }: Props) {
         role="group"
         aria-label="Plantillas"
         style={{ "--fl": medidas.izq ? "28px" : "0px", "--fr": medidas.der ? "44px" : "0px" } as CSSProperties}
-        className="flex cursor-grab gap-1.5 overflow-x-auto pt-0.5 pb-2 [-webkit-mask-image:linear-gradient(to_right,transparent_0,#000_var(--fl),#000_calc(100%-var(--fr)),transparent_100%)] [mask-image:linear-gradient(to_right,transparent_0,#000_var(--fl),#000_calc(100%-var(--fr)),transparent_100%)] "
+        className="flex cursor-grab gap-1.5 overflow-x-scroll pt-0.5 pb-2 [-webkit-mask-image:linear-gradient(to_right,transparent_0,#000_var(--fl),#000_calc(100%-var(--fr)),transparent_100%)] [mask-image:linear-gradient(to_right,transparent_0,#000_var(--fl),#000_calc(100%-var(--fr)),transparent_100%)] "
         onPointerDown={(e) => {
           const el = lista.current;
           if (e.pointerType !== "mouse" || !el) return;

@@ -215,9 +215,20 @@
  *  - `scroll-grueso` (las grillas de horarios): 12 px con riel, porque ahí hay que notarla y arrastrarla.
  *  - Las filas de pastillas (plantillas, pestañas): la misma de 6 px, horizontal. `AreaScroll` dibuja su propia línea de 3 px.
  * Firefox solo entiende scrollbar-width y scrollbar-color; Chrome y Safari, los ::-webkit-scrollbar (que dan el tamaño exacto).
+ * Una barra personalizada ocupa espacio (no flota sobre el contenido como las del celular) y solo aparece si el contenido
+ * no cabe: `scrollbar-gutter: stable` reserva siempre ese espacio, para que nada se corra cuando aparece o desaparece.
+ * Va en la página y en todo lo que se desplaza hacia abajo (clases `overflow-y-auto`, `overflow-auto` y `scroll-grueso`).
+ * Las filas que se desplazan de lado usan `overflow-x-scroll`: el riel es transparente, así que reserva el alto de la barra sin verse.
  */
 :root {
+  scrollbar-gutter: stable;
   --scroll-pulgar: color-mix(in oklab, var(--muted-foreground) 65%, transparent);
+}
+
+.overflow-y-auto,
+.overflow-auto,
+.scroll-grueso {
+  scrollbar-gutter: stable;
 }
 
 @layer base {
